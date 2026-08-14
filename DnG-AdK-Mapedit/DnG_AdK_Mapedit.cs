@@ -85,7 +85,7 @@ namespace DnG_AdK_Mapedit
 
         private void DnG_AdK_mapedit_Load(object sender, System.EventArgs e)
         {
-            //Currently disable non-functional harbour section
+            //For now disable broken harbour section
             Harbours_tab.Enabled = false;
 
             Resources_wait.Visible = false;
@@ -408,6 +408,10 @@ namespace DnG_AdK_Mapedit
                 {
                     Map_preview.BackgroundImage = Image.FromStream(stream);
                 }
+            }
+            else
+            {
+                Map_prieview_checkbox.Enabled = false;
             }
 
             byte[] DnG_map = File.ReadAllBytes(WorkingFileName);
@@ -1974,9 +1978,6 @@ namespace DnG_AdK_Mapedit
             List<byte> AdK_map_resizable;
             int current_adk_byte = 0;
 
-            //List of all used IDs
-            HashSet<int> used_IDs = new HashSet<int>();
-
             //Load the AdK map template into a resizable list
             Assembly assembly = Assembly.GetExecutingAssembly();
 
@@ -2264,6 +2265,7 @@ namespace DnG_AdK_Mapedit
             AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(map_area));
             current_adk_byte += 4;
             current_dng_byte += 4;
+            int textrures_array_beginning = current_adk_byte;
             int texture_data_length = map_area * 4;
             //Copy the texture data to the AdK map
             AdK_map_resizable.RemoveRange(current_adk_byte, template_area * 4);
@@ -2292,31 +2294,28 @@ namespace DnG_AdK_Mapedit
             AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(map_area));
             current_adk_byte += 4;
             current_dng_byte += 4;
+            int gridstate_array_beginning = current_adk_byte;
             //Copy the gridstate data to the AdK map (length should be the same as the texture data)
             AdK_map_resizable.RemoveRange(current_adk_byte, template_area * 4);
             AdK_map_resizable.InsertRange(current_adk_byte, DnG_map.Skip(current_dng_byte).Take(texture_data_length));
             current_dng_byte += texture_data_length;
 
-            //Remove invalid gridstate harbour data
+            // Remove invalid gridstate harbour data (Clears Byte 2 Harbour flag 0x10)
             for (int i = 0; i < map_area; i++)
             {
-                current_adk_byte += 1;
-                if (AdK_map_resizable[current_adk_byte] == 0x12)
-                {
-                    AdK_map_resizable.RemoveRange(current_adk_byte, 1);
-                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x02 });
-                }
-                if (AdK_map_resizable[current_adk_byte] == 0x16)
-                {
-                    AdK_map_resizable.RemoveRange(current_adk_byte, 1);
-                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x06 });
-                }
-                current_adk_byte += 3;
+                current_adk_byte += 1; // Move to Byte 2
+
+                // CHANGED: Instead of checking exact values like 0x12 or 0x16 and re-inserting bytes,
+                // bitwise AND with ~0x10 (0xEF) strips the Harbour flag (0x10) directly in-place,
+                // preserving any other flags (e.g., Building Spot 0x02, Doodad 0x04).
+                AdK_map_resizable[current_adk_byte] &= 0xEF;
+
+                current_adk_byte += 3; // Advance to the start of the next tile (Byte 1)
             }
 
             current_adk_byte -= texture_data_length;
 
-            //Write the anchorages base
+            // Write the anchorages base
             for (int i = 0; i < Harbours_list.Count; i++)
             {
                 if (Harbours_list[i].anchorage)
@@ -2325,35 +2324,107 @@ namespace DnG_AdK_Mapedit
                     int anchor_y = Harbours_list[i].anchor_y;
                     int anchor_index = anchor_y * Map_size_x + anchor_x;
                     int anchor_byte_index = current_adk_byte + anchor_index * 4;
-                    byte anchor_byte = AdK_map_resizable[anchor_byte_index];
+                    byte anchor_byte = AdK_map_resizable[anchor_byte_index]; // Byte 1 (Terrain)
 
-                    //Check if an anchor is on the coast
-                    if (anchor_byte != 0x08 && anchor_byte != 0x18 && anchor_byte != 0x09)
+                    // CHANGED: Instead of explicitly checking 0x08, 0x18, 0x09, check for the Coastal bit (0x08).
+                    // This dynamically accepts all coastal terrain variants (e.g., coastal with height 0x48, stone 0x89, etc.)
+                    if ((anchor_byte & 0x08) == 0)
                     {
-                        MessageBox.Show($"Harbour at index {i} has an anchor in a invalid location.", "Anchor is in invalid location", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show($"Harbour at index {i} has an anchor in an invalid location.", "Anchor is in invalid location", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return null;
                     }
 
-                    AdK_map_resizable.RemoveRange(anchor_byte_index, 4);
-                    AdK_map_resizable.InsertRange(anchor_byte_index, new byte[] { 0x08, 0x00, 0x02, 0x00 }); //Pavement texture for anchorage
+                    // CHANGED: Replaced array RemoveRange/InsertRange with direct element mutation in-place.
+                    // Writes the SAdK Anchor bit pattern: [0x08, 0x00, 0x02, 0x00]
+                    AdK_map_resizable[anchor_byte_index + 0] = 0x08; // Byte 1: Coastal Terrain
+                    AdK_map_resizable[anchor_byte_index + 1] = 0x00; // Byte 2: Base
+                    AdK_map_resizable[anchor_byte_index + 2] = 0x02; // Byte 3: Anchor Point Flag
+                    AdK_map_resizable[anchor_byte_index + 3] = 0x00; // Byte 4: Reserved
                 }
             }
 
-            //Block hexagons occupied by caves
+            // Block hexagons occupied by caves (Sets Byte 2 'is_blocked_by_doodad' flag 0x04)
             foreach (var cave in Caves_list)
             {
                 int cave_x = cave.pos_x;
                 int cave_y = cave.pos_y;
                 int cave_index = cave_y * Map_size_x + cave_x;
-                int cave_byte_index = current_adk_byte + cave_index * 4 + 1;
-                byte cave_byte = AdK_map_resizable[cave_byte_index];
+                int cave_byte_index = current_adk_byte + cave_index * 4 + 1; // Byte 2 (Spot Types & Doodads)
 
-                if (cave_byte == 0x00)
+                // CHANGED: Use bitwise OR (|= 0x04) to set the 'is_blocked_by_doodad' flag in-place.
+                // This replaces hardcoded checks (0x00 -> 0x04, 0x02 -> 0x06) and safely preserves 
+                // any existing Byte 2 flags (such as Building Spot 0x02 or Harbour 0x10).
+                AdK_map_resizable[cave_byte_index] |= 0x04;
+            }
+
+            //Initiate a texture swap
+            foreach (var swap in Swap_list)
+            {
+                if (swap.tab == 1)
                 {
-                    AdK_map_resizable[cave_byte_index] = 0x04;
-                }
-                if (cave_byte == 0x02)
-                {
-                    AdK_map_resizable[cave_byte_index] = 0x06;
+                    byte[] temp_AdK_map = AdK_map_resizable.ToArray();
+                    int texture_type_from = DnG_texture_types[swap.from];
+                    byte[] texture_from_bytes = (byte[])DnG_textures[swap.from].Clone();
+                    int texture_from = BitConverter.ToInt32(texture_from_bytes, 0);
+
+                    int texture_type_to = AdK_texture_types[swap.to];
+                    byte[] texture_to = (byte[])AdK_textures[swap.to].Clone();
+
+                    for (int j = 0; j < map_area; j++)
+                    {
+                        int texture_offset = textrures_array_beginning + j * 4;
+                        int texture_type = BitConverter.ToInt32(temp_AdK_map, texture_offset);
+
+                        if (texture_type == texture_type_from)
+                        {
+                            // Swap texture bytes to new texture
+                            Array.Copy(texture_to, 0, temp_AdK_map, texture_offset, 4);
+
+                            // Calculate current tile's gridstate byte offset
+                            int gridstate_offset = gridstate_array_beginning + j * 4;
+
+                            // 1. Remove old gridstate base flag (texture_type_from)
+                            switch (texture_type_from)
+                            {
+                                case 1: // Building Spot
+                                    temp_AdK_map[gridstate_offset + 1] &= 0xFD; // Clear Byte 2, Bit 1 (~0x02)
+                                    break;
+                                case 2: // Mining Spot
+                                    temp_AdK_map[gridstate_offset + 0] &= 0xEF; // Clear Byte 1, Bit 4 (~0x10)
+                                    break;
+                                case 3: // Sand / Standard Base
+                                        // Default state, no base flags to clear
+                                    break;
+                                case 4: // Blocked
+                                        // CHANGED: Only clear 0x01 if bit 0x80 (Removable Object) is NOT set.
+                                        // If 0x80 is set, 0x01 belongs to a Stone and must be preserved!
+                                    if ((temp_AdK_map[gridstate_offset + 0] & 0x80) == 0)
+                                    {
+                                        temp_AdK_map[gridstate_offset + 0] &= 0xFE; // Clear Byte 1, Bit 0 (~0x01)
+                                    }
+                                    break;
+                            }
+
+                            // 2. Apply new gridstate base flag (texture_type_to)
+                            switch (texture_type_to)
+                            {
+                                case 1: // Building Spot
+                                    temp_AdK_map[gridstate_offset + 1] |= 0x02; // Set Byte 2, Bit 1 (0x02)
+                                    break;
+                                case 2: // Mining Spot
+                                    temp_AdK_map[gridstate_offset + 0] |= 0x10; // Set Byte 1, Bit 4 (0x10)
+                                    break;
+                                case 3: // Sand / Standard Base
+                                        // Default state, no base flags to set
+                                    break;
+                                case 4: // Blocked
+                                    temp_AdK_map[gridstate_offset + 0] |= 0x01; // Set Byte 1, Bit 0 (0x01)
+                                    break;
+                            }
+                        }
+                    }
+
+                    AdK_map_resizable = temp_AdK_map.ToList();
                 }
             }
 
@@ -2481,15 +2552,7 @@ namespace DnG_AdK_Mapedit
                     AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x01, 0x00, 0x00, 0x00, 0x5B, 0x76, 0x5C, 0xEF, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                     current_adk_byte += 24;
                     //Generate a random ID for the anchor doodad
-                    int fullRangeId;
-                    do
-                    {
-                        fullRangeId = rand.Next(1000000, int.MaxValue);
-                    }
-                    while (used_IDs.Contains(fullRangeId));
-                    used_IDs.Add(fullRangeId);
-
-                    AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(fullRangeId));
+                    AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(GenerateUniqueId()));
                     current_adk_byte += 4;
                     //Write second static value
                     AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00 });
@@ -2552,52 +2615,11 @@ namespace DnG_AdK_Mapedit
             //End of the DnG map, no need to update current_dng_byte anymore
             current_adk_byte += ambients_data_length;
 
-            //Generate in-game unique IDs for each buoy
-            List<byte[]> in_game_buoy_id = new List<byte[]>();
-            //Add an empty ID to the start of the list to make it 1-indexed
-            in_game_buoy_id.Add(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
-
-            for (int i = 0; i < Harbours_list.Count; i++)
-            {
-                int fullRangeId;
-
-                if (Harbours_list[i].buoy_1_connection > 0)
-                {
-                    do
-                    {
-                        fullRangeId = rand.Next(1000000, int.MaxValue);
-                    }
-                    while (used_IDs.Contains(fullRangeId));
-                    used_IDs.Add(fullRangeId);
-
-                    in_game_buoy_id.Add(BitConverter.GetBytes(fullRangeId));
-                }
-                else
-                {
-                    in_game_buoy_id.Add(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
-                }
-
-                if (Harbours_list[i].buoy_2_connection > 0)
-                {
-                    do
-                    {
-                        fullRangeId = rand.Next(1000000, int.MaxValue);
-                    }
-                    while (used_IDs.Contains(fullRangeId));
-                    used_IDs.Add(fullRangeId);
-
-                    in_game_buoy_id.Add(BitConverter.GetBytes(fullRangeId));
-                }
-                else
-                {
-                    in_game_buoy_id.Add(new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
-                }
-            }
-
             //Skip buoy connections header
             current_adk_byte += 36;
+            //Generate buoy connections and harbour IDs
+            GenerateBuoyConnections();
             //Write buoy connections amount
-            RegenerateBuoyConnections();
             AdK_map_resizable.RemoveRange(current_adk_byte, 4);
             AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(Buoy_connections.Count));
             current_adk_byte += 4;
@@ -2607,21 +2629,32 @@ namespace DnG_AdK_Mapedit
             {
                 for (int i = 0; i < Buoy_connections.Count; i++)
                 {
-                    //Write the first static value
+                    //Write the first static value and the ID header
                     AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x01, 0x00, 0x00, 0x00, 0x2D, 0xD1, 0x27, 0x1C, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                     current_adk_byte += 24;
-                    //Write the first buoy ID
-                    int Harbours_list_buoy_id = Buoy_connections[i].source_id;
-                    byte[] buoy_id = in_game_buoy_id[Harbours_list_buoy_id];
-                    AdK_map_resizable.InsertRange(current_adk_byte, buoy_id);
+                    //Write the first connection ID
+                    byte[] temp_id = BitConverter.GetBytes(Buoy_connections[i].connection_id);
+                    AdK_map_resizable.InsertRange(current_adk_byte, temp_id);
                     current_adk_byte += 4;
-                    //Write the second static value
-                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
-                    current_adk_byte += 16;
-                    //Write the second buoy ID
-                    Harbours_list_buoy_id = Buoy_connections[i].target_id;
-                    buoy_id = in_game_buoy_id[Harbours_list_buoy_id];
-                    AdK_map_resizable.InsertRange(current_adk_byte, buoy_id);
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                    current_adk_byte += 4;
+                    //Write the ID header
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
+                    current_adk_byte += 12;
+                    //Write the first harbour iD
+                    temp_id = BitConverter.GetBytes(Buoy_connections[i].harbour_1_id);
+                    AdK_map_resizable.InsertRange(current_adk_byte, temp_id);
+                    current_adk_byte += 4;
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                    current_adk_byte += 4;
+                    //Write the ID header
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
+                    current_adk_byte += 12;
+                    //Write the second harbour ID
+                    temp_id = BitConverter.GetBytes(Buoy_connections[i].harbour_2_id);
+                    AdK_map_resizable.InsertRange(current_adk_byte, temp_id);
+                    current_adk_byte += 4;
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00 });
                     current_adk_byte += 4;
                     //Write the third static value
                     AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79, 0x3C, 0xF8, 0x25, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF });
@@ -2653,10 +2686,7 @@ namespace DnG_AdK_Mapedit
                     }
                     else
                     {
-                        Console.WriteLine($"Start (Buoy {Buoy_connections[i].source_id}): [{source_coordinates[0]}, {source_coordinates[1]}] Height: {heightmap_logical[source_coordinates[1], source_coordinates[0]]}");
-                        Console.WriteLine($"Target (Buoy {Buoy_connections[i].target_id}): [{target_coordinates[0]}, {target_coordinates[1]}] Height: {heightmap_logical[target_coordinates[1], target_coordinates[0]]}");
-
-                        MessageBox.Show("Path connecting buoys " + (Buoy_connections[i].source_id).ToString() + " and " + (Buoy_connections[i].target_id).ToString() + " is blocked.", "Path can't be established", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show("Path connecting buoys (implement) is blocked.", "Path can't be established", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return null;
                     }
                 }
@@ -2688,9 +2718,8 @@ namespace DnG_AdK_Mapedit
 });
                 current_adk_byte += 24;
 
-                //Generate a harbour ID
-                int fullRangeId = rand.Next(1000000, int.MaxValue);
-                AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(fullRangeId));
+                //Write a harbour ID
+                AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(Harbour_data[i].harbour_id));
                 current_adk_byte += 4;
 
                 AdK_map_resizable.InsertRange(current_adk_byte, new byte[]
@@ -2709,7 +2738,7 @@ namespace DnG_AdK_Mapedit
                 AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(Harbour_pos_y));
                 current_adk_byte += 4;
 
-                //Write the mystery value (not static, placeholder should work)
+                //use a value of 2 so a separate array storing harbour IDs does not have to be created
                 AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x02, 0x00, 0x00, 0x00 });
                 current_adk_byte += 4;
 
@@ -2762,20 +2791,20 @@ namespace DnG_AdK_Mapedit
 });
                 current_adk_byte += 12;
 
-                //Write buoy 1 ID
-                int Harbours_list_buoy_id = ((i + 1) * 2) - 1;
-                byte[] buoy_id = in_game_buoy_id[Harbours_list_buoy_id];
-                AdK_map_resizable.InsertRange(current_adk_byte, buoy_id);
-                current_adk_byte += 4;
-                if (MatchBytes(buoy_id, 0, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF }))
+                //Write buoy 1 connection ID
+                if (harbour.buoy_1_connection <= 0)
                 {
-                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF });
+                    current_adk_byte += 8;
                 }
                 else
                 {
+                    byte[] temp_buoy_connection = BitConverter.GetBytes(Harbour_data[i].buoy_1_connection_id);
+                    AdK_map_resizable.InsertRange(current_adk_byte, temp_buoy_connection);
+                    current_adk_byte += 4;
                     AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                    current_adk_byte += 4;
                 }
-                current_adk_byte += 4;
 
                 AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
                 current_adk_byte += 12;
@@ -2836,20 +2865,20 @@ namespace DnG_AdK_Mapedit
 });
                 current_adk_byte += 12;
 
-                //Write buoy 2 ID
-                Harbours_list_buoy_id = (i + 1) * 2;
-                buoy_id = in_game_buoy_id[Harbours_list_buoy_id];
-                AdK_map_resizable.InsertRange(current_adk_byte, buoy_id);
-                current_adk_byte += 4;
-                if (MatchBytes(buoy_id, 0, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF }))
+                //Write buoy 2 connection ID
+                if (harbour.buoy_2_connection <= 0)
                 {
-                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF });
+                    AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF });
+                    current_adk_byte += 8;
                 }
                 else
                 {
+                    byte[] temp_buoy_connection = BitConverter.GetBytes(Harbour_data[i].buoy_2_connection_id);
+                    AdK_map_resizable.InsertRange(current_adk_byte, temp_buoy_connection);
+                    current_adk_byte += 4;
                     AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                    current_adk_byte += 4;
                 }
-                current_adk_byte += 4;
 
                 AdK_map_resizable.InsertRange(current_adk_byte, new byte[]
 {
@@ -2864,12 +2893,11 @@ namespace DnG_AdK_Mapedit
                 AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(buoy2_coordinates.y));
                 current_adk_byte += 4;
 
+                //Ending depends on the mystery value
                 AdK_map_resizable.InsertRange(current_adk_byte, new byte[]
-                {
-    0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5,
-    0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
-    0xFF, 0xFF, 0xFF, 0xFF
-                });
+{
+    0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
+});
                 current_adk_byte += 20;
             }
 
@@ -2886,15 +2914,7 @@ namespace DnG_AdK_Mapedit
                 //Write first static value
                 AdK_map_resizable.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x74, 0x76, 0x80, 0x4A, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                 //Generate a random ID for the cave
-                int fullRangeId;
-                do
-                {
-                    fullRangeId = rand.Next(1000000, int.MaxValue);
-                }
-                while (used_IDs.Contains(fullRangeId));
-                used_IDs.Add(fullRangeId);
-
-                AdK_map_resizable.AddRange(BitConverter.GetBytes(fullRangeId));
+                AdK_map_resizable.AddRange(BitConverter.GetBytes(GenerateUniqueId()));
                 //Write second static value
                 AdK_map_resizable.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
                 //Write the cave position
@@ -2905,48 +2925,88 @@ namespace DnG_AdK_Mapedit
             //Add empty 4 bytes at the end of the file
             AdK_map_resizable.AddRange(new byte[] { 0x00, 0x00, 0x00, 0x00 });
 
-            //Remove water sign doodad with no texture
+            //Remove water sign doodad with no texture (currently waiting for the map with a lifetime doodad to appear)
 
             return AdK_map_resizable.ToArray();
         }
+
+        // List of all used IDs
+        HashSet<int> used_IDs = new HashSet<int>();
 
         // Offset lookup table: [rotationIndex, buoyIndex] -> (dx, dy)
         // Rotation mapping: 0=SW, 1=NW, 2=SE, 3=NE, 4=N, 5=S, 6=E, 7=W
         private static readonly (int dx, int dy)[,] BuoyOffsets = new (int dx, int dy)[8, 2]
         {
-        { (-2, -3), (-3, -5) }, // 0: harbor_sw
-        { (-2,  3), (-3,  5) }, // 1: harbor_nw
-        { ( 2, -3), ( 3, -5) }, // 2: harbor_se
-        { ( 2,  3), ( 3,  5) }, // 3: harbor_ne
-        { ( 0,  3), ( 0,  5) }, // 4: harbor_n
-        { ( 0, -3), ( 0, -5) }, // 5: harbor_s
-        { ( 3,  0), ( 5,  0) }, // 6: harbor_e
-        { (-3,  0), (-5,  0) }  // 7: harbor_w
+    { (-2, -3), (-3, -5) }, // 0: harbor_sw
+    { (-2,  3), (-3,  5) }, // 1: harbor_nw
+    { ( 2, -3), ( 3, -5) }, // 2: harbor_se
+    { ( 2,  3), ( 3,  5) }, // 3: harbor_ne
+    { ( 0,  3), ( 0,  5) }, // 4: harbor_n
+    { ( 0, -3), ( 0, -5) }, // 5: harbor_s
+    { ( 3,  0), ( 5,  0) }, // 6: harbor_e
+    { (-3,  0), (-5,  0) }  // 7: harbor_w
         };
 
         // Generated results
-        public List<(int source_id, int target_id, int buoy_source_x, int buoy_source_y, int buoy_target_x, int buoy_target_y)> Buoy_connections
-            = new List<(int, int, int, int, int, int)>();
+        public List<(int connection_id, int harbour_1_id, int harbour_2_id, int buoy_source_x, int buoy_source_y, int buoy_target_x, int buoy_target_y)> Buoy_connections
+            = new List<(int, int, int, int, int, int, int)>();
+
+        public List<(int harbour_id, int buoy_1_connection_id, int buoy_2_connection_id)> Harbour_data
+            = new List<(int, int, int)>();
 
         /// <summary>
-        /// Regenerates all valid buoy connections and coordinate tuples.
+        /// Generates a unique random integer ID within range and tracks it in used_IDs.
         /// </summary>
-        public void RegenerateBuoyConnections()
+        private int GenerateUniqueId()
+        {
+            int id;
+            do
+            {
+                id = rand.Next(1000000, int.MaxValue);
+            }
+            while (used_IDs.Contains(id));
+
+            used_IDs.Add(id);
+            return id;
+        }
+
+        public void GenerateBuoyConnections()
         {
             Buoy_connections.Clear();
+            Harbour_data.Clear();
             globalReservedPaths.Clear();
 
             var processedPairs = new HashSet<(int, int)>();
+
+            // 1. Generate unique random IDs for all harbours upfront
+            int[] harbourIds = new int[Harbours_list.Count];
+            for (int i = 0; i < Harbours_list.Count; i++)
+            {
+                harbourIds[i] = GenerateUniqueId();
+            }
+
+            // 2D array to track connection IDs per harbour buoy [harborIndex, buoySubIndex]
+            int[,] harbourBuoyConnectionIds = new int[Harbours_list.Count, 2];
 
             for (int i = 0; i < Harbours_list.Count; i++)
             {
                 var harbor = Harbours_list[i];
 
                 // Process Buoy 1 (Sub-index 0)
-                ProcessConnection(i, 0, harbor.buoy_1_connection, processedPairs);
+                ProcessConnection(i, 0, harbor.buoy_1_connection, processedPairs, harbourBuoyConnectionIds, harbourIds);
 
                 // Process Buoy 2 (Sub-index 1)
-                ProcessConnection(i, 1, harbor.buoy_2_connection, processedPairs);
+                ProcessConnection(i, 1, harbor.buoy_2_connection, processedPairs, harbourBuoyConnectionIds, harbourIds);
+            }
+
+            // 2. Populate Harbour_data using the generated harbour IDs
+            for (int i = 0; i < Harbours_list.Count; i++)
+            {
+                Harbour_data.Add((
+                    harbourIds[i],
+                    harbourBuoyConnectionIds[i, 0],
+                    harbourBuoyConnectionIds[i, 1]
+                ));
             }
         }
 
@@ -2964,7 +3024,13 @@ namespace DnG_AdK_Mapedit
             return (harbor.pos_x + offset_x, harbor.pos_y + offset_y);
         }
 
-        private void ProcessConnection(int sourceHarborIdx, int sourceBuoySubIdx, int targetBuoyId, HashSet<(int, int)> processedPairs)
+        private void ProcessConnection(
+            int sourceHarborIdx,
+            int sourceBuoySubIdx,
+            int targetBuoyId,
+            HashSet<(int, int)> processedPairs,
+            int[,] harbourBuoyConnectionIds,
+            int[] harbourIds)
         {
             int maxBuoyId = Harbours_list.Count * 2;
 
@@ -2992,7 +3058,23 @@ namespace DnG_AdK_Mapedit
             var source_coordinates = GetBuoyWorldCoordinates(sourceHarbor, sourceBuoySubIdx);
             var target_coordinates = GetBuoyWorldCoordinates(targetHarbor, targetBuoySubIdx);
 
-            Buoy_connections.Add((sourceBuoyId, targetBuoyId, source_coordinates.x, source_coordinates.y, target_coordinates.x, target_coordinates.y));
+            // Generate a random unique ID for the connection
+            int connectionId = GenerateUniqueId();
+
+            // Add connection record using generated harbour IDs instead of array indices
+            Buoy_connections.Add((
+                connectionId,
+                harbourIds[sourceHarborIdx],
+                harbourIds[targetHarborIdx],
+                source_coordinates.x,
+                source_coordinates.y,
+                target_coordinates.x,
+                target_coordinates.y
+            ));
+
+            // Map connection ID to both source and target buoy slots
+            harbourBuoyConnectionIds[sourceHarborIdx, sourceBuoySubIdx] = connectionId;
+            harbourBuoyConnectionIds[targetHarborIdx, targetBuoySubIdx] = connectionId;
         }
 
         List<int[]> globalReservedPaths = new List<int[]>();
@@ -3325,5 +3407,252 @@ namespace DnG_AdK_Mapedit
         new byte[] { 0x78, 0xC8, 0xA5, 0xFC }, // 10: !!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
         new byte[] { 0x79, 0xC8, 0xA5, 0xFC }  // 11: !!!MED Camel Spawn
     };
+
+        private static readonly byte[][] DnG_textures = new byte[][]
+    {
+        new byte[] { 0x89, 0xA5, 0x1C, 0xFA }, // [0]  !!!MED (RES) rocky earth
+        new byte[] { 0x86, 0xA5, 0x1C, 0xFA }, // [1]  !!!MED (RES) rocky earth big
+        new byte[] { 0x88, 0xA5, 0x1C, 0xFA }, // [2]  !!!MED (RES) rocky earth dark
+        new byte[] { 0x87, 0xA5, 0x1C, 0xFA }, // [3]  !!!MED (RES) rocky plants
+        new byte[] { 0x70, 0xA5, 0x1C, 0xFA }, // [4]  !!!MED ground 00
+        new byte[] { 0x71, 0xA5, 0x1C, 0xFA }, // [5]  !!!MED ground 01
+        new byte[] { 0x60, 0xA5, 0x1C, 0xFA }, // [6]  !!!MED meadow 00
+        new byte[] { 0x61, 0xA5, 0x1C, 0xFA }, // [7]  !!!MED meadow 01
+        new byte[] { 0x62, 0xA5, 0x1C, 0xFA }, // [8]  !!!MED meadow 02
+        new byte[] { 0x63, 0xA5, 0x1C, 0xFA }, // [9]  !!!MED meadow 03
+        new byte[] { 0x80, 0xA5, 0x1C, 0xFA }, // [10] !!!MED rock
+        new byte[] { 0x81, 0xA5, 0x1C, 0xFA }, // [11] !!!MED rock big
+        new byte[] { 0x83, 0xA5, 0x1C, 0xFA }, // [12] !!!MED rock red
+        new byte[] { 0x85, 0xA5, 0x1C, 0xFA }, // [13] !!!MED rock red big
+        new byte[] { 0x84, 0xA5, 0x1C, 0xFA }, // [14] !!!MED rock red small
+        new byte[] { 0x82, 0xA5, 0x1C, 0xFA }, // [15] !!!MED rock small
+        new byte[] { 0x90, 0xA5, 0x1C, 0xFA }, // [16] !!!MED seaground rock
+        new byte[] { 0x91, 0xA5, 0x1C, 0xFA }, // [17] !!!MED seaground rock red
+        new byte[] { 0x8A, 0xA5, 0x1C, 0xFA }, // [18] !!!MED stone ground
+        new byte[] { 0x03, 0xDE, 0xCA, 0xDE }, // [19] ((00 LAVA 01
+        new byte[] { 0x0A, 0xDE, 0xCA, 0xDE }, // [20] ((00 LAVA 01 soft
+        new byte[] { 0x08, 0xDE, 0xCA, 0xDE }, // [21] ((00 LAVA 02
+        new byte[] { 0x70, 0xDB, 0x7A, 0xF6 }, // [22] ((00 LAVA Meadow 00
+        new byte[] { 0x70, 0xBB, 0xCA, 0xF1 }, // [23] ((00 LAVA Sand 00
+        new byte[] { 0x02, 0xDE, 0xCA, 0xDE }, // [24] ((00 LAVA ground
+        new byte[] { 0x09, 0xDE, 0xCA, 0xDE }, // [25] ((00 LAVA ground flat
+        new byte[] { 0x07, 0xDE, 0xCA, 0xDE }, // [26] ((00 LAVA ground rough
+        new byte[] { 0x04, 0xDE, 0xCA, 0xDE }, // [27] ((00 LAVA rock
+        new byte[] { 0x05, 0xDE, 0xCA, 0xDE }, // [28] ((00 LAVA rock big
+        new byte[] { 0xB0, 0xFA, 0x87, 0xCA }, // [29] ((00 LAVA rock floating lava
+        new byte[] { 0x06, 0xDE, 0xCA, 0xDE }, // [30] ((00 LAVA rock small
+        new byte[] { 0xFF, 0xCA, 0xFE, 0xCA }, // [31] (RES) rocky earth
+        new byte[] { 0x02, 0xCB, 0xFE, 0xCA }, // [32] (RES) rocky earth big
+        new byte[] { 0x04, 0xCB, 0xFE, 0xCA }, // [33] (RES) rocky earth dark
+        new byte[] { 0x03, 0xCB, 0xFE, 0xCA }, // [34] (RES) rocky plants
+        new byte[] { 0x1A, 0x70, 0x56, 0xCA }, // [35] DO NOT USE
+        new byte[] { 0x01, 0xDE, 0xCA, 0xDE }, // [36] HARBOR
+        new byte[] { 0x73, 0x18, 0xD3, 0x76 }, // [37] border
+        new byte[] { 0xC2, 0xFA, 0x45, 0x45 }, // [38] earth
+        new byte[] { 0xC4, 0xFA, 0x45, 0x45 }, // [39] leaf
+        new byte[] { 0xE3, 0xE8, 0xE4, 0xBF }, // [40] meadow
+        new byte[] { 0xC3, 0xFA, 0x45, 0x45 }, // [41] meadow bright
+        new byte[] { 0xC6, 0xFA, 0x45, 0x45 }, // [42] meadow dark small
+        new byte[] { 0x10, 0x11, 0x5E, 0xDE }, // [43] meadow ground
+        new byte[] { 0xC5, 0xFA, 0x45, 0x45 }, // [44] meadow leaf
+        new byte[] { 0xC7, 0xFA, 0x45, 0x45 }, // [45] meadow red flowers
+        new byte[] { 0xC1, 0xFA, 0x45, 0x45 }, // [46] meadow yellow flowers
+        new byte[] { 0xFE, 0xAF, 0x0F, 0xD0 }, // [47] rock
+        new byte[] { 0xEF, 0xBE, 0xAD, 0xDE }, // [48] rock big
+        new byte[] { 0xFE, 0xCA, 0xFE, 0xCA }, // [49] rock small
+        new byte[] { 0x00, 0xCB, 0xFE, 0xCA }, // [50] rock stretched x
+        new byte[] { 0x01, 0xCB, 0xFE, 0xCA }, // [51] rock stretched y
+        new byte[] { 0x0D, 0xB0, 0xDE, 0xBA }, // [52] sand
+        new byte[] { 0x0E, 0xB0, 0xDE, 0xBA }, // [53] sand stones
+        new byte[] { 0x0B, 0xB0, 0xBE, 0xBA }, // [54] seaground
+        new byte[] { 0xE4, 0x74, 0x33, 0x01 }, // [55] seaground plants
+        new byte[] { 0xE6, 0x74, 0x33, 0x01 }, // [56] seaground plants rock
+        new byte[] { 0xE7, 0x74, 0x33, 0x01 }, // [57] seaground rock
+        new byte[] { 0xE8, 0x74, 0x33, 0x01 }, // [58] seaground rocky
+        new byte[] { 0xE5, 0x74, 0x33, 0x01 }, // [59] seaground sand
+        new byte[] { 0xFF, 0xE0, 0xAD, 0x0F }, // [60] snow
+        new byte[] { 0x05, 0xCB, 0xFE, 0xCA }, // [61] stone ground
+        new byte[] { 0xE4, 0x04, 0x00, 0x68 }, // [62] swamp land
+        new byte[] { 0xE6, 0x04, 0x00, 0x68 }, // [63] swamp meadow (unblocked)
+        new byte[] { 0xE5, 0x04, 0x00, 0x68 }, // [64] swamp water
+        new byte[] { 0xB3, 0xD1, 0x6B, 0xFE }, // [65] water
+        new byte[] { 0xC0, 0xA8, 0x7F, 0x77 }, // [66] §§Desert earth
+        new byte[] { 0xC9, 0xFA, 0x45, 0x45 }, // [67] §§Desert meadow
+        new byte[] { 0x0F, 0xB0, 0xDE, 0xBA }, // [68] §§Desert sand dune
+        new byte[] { 0x12, 0xB0, 0xDE, 0xBA }, // [69] §§Desert sand ripple
+        new byte[] { 0x11, 0xB0, 0xDE, 0xBA }, // [70] §§Desert sand small dune
+        new byte[] { 0x13, 0xB0, 0xDE, 0xBA }, // [71] §§Desert sand small ripple
+        new byte[] { 0x10, 0xB0, 0xDE, 0xBA }  // [72] §§Desert sand yellow
+    };
+
+        // Array storing the texture type corresponding to each terrain index (0 to 72)
+        private static readonly int[] DnG_texture_types = new int[]
+        {
+        2, // [0]  !!!MED (RES) rocky earth 2
+        2, // [1]  !!!MED (RES) rocky earth big 2
+        2, // [2]  !!!MED (RES) rocky earth dark 2
+        2, // [3]  !!!MED (RES) rocky plants 2
+        1, // [4]  !!!MED ground 00 1
+        1, // [5]  !!!MED ground 01 1
+        1, // [6]  !!!MED meadow 00 1
+        1, // [7]  !!!MED meadow 01 1
+        1, // [8]  !!!MED meadow 02 1
+        1, // [9]  !!!MED meadow 03 1
+        2, // [10] !!!MED rock 2
+        2, // [11] !!!MED rock big 2
+        2, // [12] !!!MED rock red 2
+        2, // [13] !!!MED rock red big 2
+        2, // [14] !!!MED rock red small 2
+        2, // [15] !!!MED rock small 2
+        3, // [16] !!!MED seaground rock 3
+        3, // [17] !!!MED seaground rock red 3
+        1, // [18] !!!MED stone ground 1
+        4, // [19] ((00 LAVA 01 4
+        4, // [20] ((00 LAVA 01 soft 4
+        4, // [21] ((00 LAVA 02 4
+        1, // [22] ((00 LAVA Meadow 00 1
+        3, // [23] ((00 LAVA Sand 00 3
+        1, // [24] ((00 LAVA ground 1
+        1, // [25] ((00 LAVA ground flat 1
+        1, // [26] ((00 LAVA ground rough 1
+        2, // [27] ((00 LAVA rock 2
+        2, // [28] ((00 LAVA rock big 2
+        2, // [29] ((00 LAVA rock floating lava 2
+        2, // [30] ((00 LAVA rock small 2
+        2, // [31] (RES) rocky earth 2
+        2, // [32] (RES) rocky earth big 2
+        2, // [33] (RES) rocky earth dark 2
+        2, // [34] (RES) rocky plants 2
+        1, // [35] DO NOT USE 1
+        1, // [36] HARBOR 1
+        4, // [37] border 4
+        1, // [38] earth 1
+        1, // [39] leaf 1
+        1, // [40] meadow 1
+        1, // [41] meadow bright 1
+        1, // [42] meadow dark small 1
+        1, // [43] meadow ground 1
+        1, // [44] meadow leaf 1
+        1, // [45] meadow red flowers 1
+        1, // [46] meadow yellow flowers 1
+        2, // [47] rock 2
+        2, // [48] rock big 2
+        2, // [49] rock small 2
+        2, // [50] rock stretched x 2
+        2, // [51] rock stretched y 2
+        3, // [52] sand 3
+        1, // [53] sand stones 1
+        3, // [54] seaground 3
+        3, // [55] seaground plants 3
+        3, // [56] seaground plants rock 3
+        3, // [57] seaground rock 3
+        3, // [58] seaground rocky 3
+        3, // [59] seaground sand 3
+        4, // [60] snow 4
+        1, // [61] stone ground 1
+        4, // [62] swamp land 4
+        1, // [63] swamp meadow (unblocked) 1
+        4, // [64] swamp water 4
+        4, // [65] water 4
+        1, // [66] §§Desert earth 1
+        1, // [67] §§Desert meadow 1
+        3, // [68] §§Desert sand dune 3
+        3, // [69] §§Desert sand ripple 3
+        3, // [70] §§Desert sand small dune 3
+        3, // [71] §§Desert sand small ripple 3
+        3  // [72] §§Desert sand yellow 3
+        };
+
+        // Array storing the 4-byte sequences for each terrain entry (index 0 to 40)
+        private static readonly byte[][] AdK_textures = new byte[][]
+        {
+        new byte[] { 0x02, 0x4A, 0xC4, 0x7A }, // [0]  __Highland meadow bright
+        new byte[] { 0x03, 0x4A, 0xC4, 0x7A }, // [1]  __Highland meadow bright rocks
+        new byte[] { 0x04, 0x4A, 0xC4, 0x7A }, // [2]  __Highland meadow medium
+        new byte[] { 0x05, 0x4A, 0xC4, 0x7A }, // [3]  __Highland meadow medium rocks
+        new byte[] { 0x06, 0x4A, 0xC4, 0x7A }, // [4]  __Highland meadow dark
+        new byte[] { 0x07, 0x4A, 0xC4, 0x7A }, // [5]  __Highland meadow dark rocks
+        new byte[] { 0x00, 0x4D, 0xC4, 0x7A }, // [6]  __Highland earth fir moss
+        new byte[] { 0x01, 0x4D, 0xC4, 0x7A }, // [7]  __Highland earth fir
+        new byte[] { 0x02, 0x4D, 0xC4, 0x7A }, // [8]  __Highland earth
+        new byte[] { 0x02, 0x4B, 0xC4, 0x7A }, // [9]  __Highland rock
+        new byte[] { 0x03, 0x4B, 0xC4, 0x7A }, // [10] __Highland rock big
+        new byte[] { 0x04, 0x4B, 0xC4, 0x7A }, // [11] __Highland (RES) rocky earth
+        new byte[] { 0x05, 0x4B, 0xC4, 0x7A }, // [12] __Highland rock flat
+        new byte[] { 0x06, 0x4B, 0xC4, 0x7A }, // [13] __Highland rock dark big
+        new byte[] { 0x07, 0x4B, 0xC4, 0x7A }, // [14] __Highland rock dark flat
+        new byte[] { 0x08, 0x4B, 0xC4, 0x7A }, // [15] __Highland rock braid flat
+        new byte[] { 0x0D, 0x4B, 0xC4, 0x7A }, // [16] __Highland stone ground
+        new byte[] { 0x09, 0x4B, 0xC4, 0x7A }, // [17] --Snow highland rock much
+        new byte[] { 0x0A, 0x4B, 0xC4, 0x7A }, // [18] --Snow highland rock
+        new byte[] { 0x0B, 0x4B, 0xC4, 0x7A }, // [19] --Snow highland rock part
+        new byte[] { 0x0C, 0x4B, 0xC4, 0x7A }, // [20] --Snow (RES) rocky earth
+        new byte[] { 0x0B, 0x4E, 0xC4, 0x7A }, // [21] --Snow meadow
+        new byte[] { 0x0C, 0x4E, 0xC4, 0x7A }, // [22] --Snow meadow snow
+        new byte[] { 0x0D, 0x4E, 0xC4, 0x7A }, // [23] --Snow meadow snow 2
+        new byte[] { 0x0E, 0x4E, 0xC4, 0x7A }, // [24] --Snow meadow snow 3
+        new byte[] { 0x0F, 0x4E, 0xC4, 0x7A }, // [25] --Snow meadow Treeground 80x80,200x200
+        new byte[] { 0x10, 0x4E, 0xC4, 0x7A }, // [26] --Snow meadow Treeground 125x125
+        new byte[] { 0x11, 0x4E, 0xC4, 0x7A }, // [27] --Snow meadow Treeground 170x170
+        new byte[] { 0x12, 0x4E, 0xC4, 0x7A }, // [28] --Snow meadow Treeground 255x255
+        new byte[] { 0x10, 0x4C, 0xC4, 0x7A }, // [29] __Highland swamp land
+        new byte[] { 0x11, 0x4C, 0xC4, 0x7A }, // [30] __Highland swamp water
+        new byte[] { 0x12, 0x4C, 0xC4, 0x7A }, // [31] __Highland swamp meadow (unblocked)
+        new byte[] { 0x02, 0x4C, 0xC4, 0x7A }, // [32] __Highland seaground rocks
+        new byte[] { 0x03, 0x4C, 0xC4, 0x7A }, // [33] __Highland seaground rocks dark flat
+        new byte[] { 0x04, 0x4C, 0xC4, 0x7A }, // [34] __Highland seaground pebbles
+        new byte[] { 0x0E, 0x5E, 0xC4, 0x7A }, // [35] --Snow Ice Crackles
+        new byte[] { 0x0F, 0x5E, 0xC4, 0x7A }, // [36] --Snow Ice Crackles Dark
+        new byte[] { 0x10, 0x5E, 0xC4, 0x7A }, // [37] --Snow Ice Clean
+        new byte[] { 0x13, 0x5E, 0xC4, 0x7A }, // [38] --Snow Ice Clean Dark
+        new byte[] { 0x11, 0x5E, 0xC4, 0x7A }, // [39] --Snow medium border
+        new byte[] { 0x12, 0x5E, 0xC4, 0x7A }  // [40] --Snow soft border
+        };
+
+        // Array storing the texture type corresponding to each terrain index (0 to 40)
+        private static readonly int[] AdK_texture_types = new int[]
+        {
+        1, // [0]  __Highland meadow bright 1
+        1, // [1]  __Highland meadow bright rocks 1
+        1, // [2]  __Highland meadow medium 1
+        1, // [3]  __Highland meadow medium rocks 1
+        1, // [4]  __Highland meadow dark 1
+        1, // [5]  __Highland meadow dark rocks 1
+        1, // [6]  __Highland earth fir moss 1
+        1, // [7]  __Highland earth fir 1
+        1, // [8]  __Highland earth 1
+        2, // [9]  __Highland rock 2
+        2, // [10] __Highland rock big 2
+        2, // [11] __Highland (RES) rocky earth 2
+        2, // [12] __Highland rock flat 2
+        2, // [13] __Highland rock dark big 2
+        2, // [14] __Highland rock dark flat 2
+        2, // [15] __Highland rock braid flat 2
+        1, // [16] __Highland stone ground 1
+        2, // [17] --Snow highland rock much 2
+        2, // [18] --Snow highland rock 2
+        2, // [19] --Snow highland rock part 2
+        2, // [20] --Snow (RES) rocky earth 2
+        1, // [21] --Snow meadow 1
+        1, // [22] --Snow meadow snow 1
+        1, // [23] --Snow meadow snow 2 1
+        1, // [24] --Snow meadow snow 3 1
+        1, // [25] --Snow meadow Treeground 80x80,200x200 1
+        1, // [26] --Snow meadow Treeground 125x125 1
+        1, // [27] --Snow meadow Treeground 170x170 1
+        1, // [28] --Snow meadow Treeground 255x255 1
+        4, // [29] __Highland swamp land 4
+        4, // [30] __Highland swamp water 4
+        1, // [31] __Highland swamp meadow (unblocked) 1
+        3, // [32] __Highland seaground rocks 3
+        3, // [33] __Highland seaground rocks dark flat 3
+        3, // [34] __Highland seaground pebbles 3
+        4, // [35] --Snow Ice Crackles 4
+        4, // [36] --Snow Ice Crackles Dark 4
+        4, // [37] --Snow Ice Clean 4
+        4, // [38] --Snow Ice Clean Dark 4
+        4, // [39] --Snow medium border 4
+        4  // [40] --Snow soft border 4
+        };
     }
 }
