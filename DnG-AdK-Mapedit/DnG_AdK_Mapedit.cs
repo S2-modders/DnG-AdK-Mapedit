@@ -24,6 +24,7 @@ namespace DnG_AdK_Mapedit
         private bool Compress;
         private string sourceFileName;
         private string destinationFileName;
+        private string destination2;
 
         private int Player_count;
 
@@ -98,6 +99,8 @@ namespace DnG_AdK_Mapedit
 
             Sacrifice_included_presets.SelectedIndex = 0;
             Sacrifice_included_presets.Enabled = false;
+
+            Multiplayer_prefix_checkbox.Enabled = false;
         }
 
         //User interacts with the DnG map file path textbox
@@ -292,43 +295,76 @@ namespace DnG_AdK_Mapedit
                         }
                         else
                         {
-                            //Moving the compressed file to a target location
+                            // 1. Move/Overwrite the primary compressed map file
                             if (File.Exists(destinationFileName))
                             {
                                 File.Delete(destinationFileName);
                             }
                             File.Move(sourceFileName, destinationFileName);
 
-                            //Recovering uncompressed file is not important
+                            // 2. Handle secondary destination file if set
+                            if (!string.IsNullOrEmpty(destination2))
+                            {
+                                string secDir = Path.GetDirectoryName(destination2) ?? "";
+                                string secFileName = Path.GetFileNameWithoutExtension(destination2);
+                                string secExt = Path.GetExtension(destination2);
+
+                                string prefix = $"MP_{Player_count}P_";
+
+                                // Strip prefix if present so we don't lowercase it or duplicate it
+                                if (secFileName.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    secFileName = secFileName.Substring(prefix.Length);
+                                }
+
+                                // Format ONLY the file body (spaces -> '_', lowercase)
+                                string sanitizedBody = secFileName.Replace(' ', '_').ToLowerInvariant();
+
+                                // Recombine with uppercase prefix
+                                destination2 = Path.Combine(secDir, $"{prefix}{sanitizedBody}{secExt}");
+
+                                if (File.Exists(destination2))
+                                {
+                                    File.Delete(destination2);
+                                }
+
+                                // Copy primary exported map file to secondary destination
+                                File.Copy(destinationFileName, destination2, true);
+                            }
+
+                            // 3. Clean up the uncompressed temporary export file
                             string tempFileName = Path.Combine(
-                            Path.GetDirectoryName(sourceFileName) ?? "",
-                            Path.GetFileNameWithoutExtension(sourceFileName) + ".adk.s2m"
+                                Path.GetDirectoryName(sourceFileName) ?? "",
+                                Path.GetFileNameWithoutExtension(sourceFileName) + ".adk.s2m"
                             );
 
-                            File.Delete(tempFileName);
-
-                            //Copy the prieview render
-
-                            // Get the source preview render path
-                            string bmpPath = DnG_map_path.Text.Replace(".s2m", ".bmp");
-
-                            // Get the destination preview render path
-                            string destinationBmpPath = destinationFileName.Replace(".s2m", ".bmp");
-
-                            // Check if checkbox is checked and source preview exists
-                            if (Map_prieview_checkbox.Checked && File.Exists(bmpPath))
+                            if (File.Exists(tempFileName))
                             {
-                                // Resolve full paths to accurately compare source and target
-                                string fullSourcePath = Path.GetFullPath(bmpPath);
-                                string fullDestPath = Path.GetFullPath(destinationBmpPath);
+                                File.Delete(tempFileName);
+                            }
 
-                                // Prevent copying if the source and destination are the exact same file
-                                if (!string.Equals(fullSourcePath, fullDestPath, StringComparison.OrdinalIgnoreCase))
+                            // 4. Handle map preview BMP copy
+                            if (Map_prieview_checkbox.Checked)
+                            {
+                                string bmpPath = Path.ChangeExtension(DnG_map_path.Text, ".bmp");
+
+                                if (File.Exists(bmpPath))
                                 {
-                                    File.Copy(bmpPath, destinationBmpPath, true); // Overwrite destination if it exists
+                                    string primaryBmpDest = Path.ChangeExtension(destinationFileName, ".bmp");
+
+                                    // Copy BMP for primary file
+                                    CopyFileIfDifferent(bmpPath, primaryBmpDest);
+
+                                    // Copy BMP for secondary file if applicable
+                                    if (!string.IsNullOrEmpty(destination2))
+                                    {
+                                        string secondaryBmpDest = Path.ChangeExtension(destination2, ".bmp");
+                                        CopyFileIfDifferent(bmpPath, secondaryBmpDest);
+                                    }
                                 }
                             }
 
+                            // Re-enable UI
                             Tab_control.Enabled = true;
                             Export_wait.Visible = false;
                         }
@@ -357,6 +393,18 @@ namespace DnG_AdK_Mapedit
                     }
                 }
             });
+        }
+
+        // Helper method to safely copy files without self-overwrite errors
+        void CopyFileIfDifferent(string sourcePath, string destPath)
+        {
+            string fullSource = Path.GetFullPath(sourcePath);
+            string fullDest = Path.GetFullPath(destPath);
+
+            if (!string.Equals(fullSource, fullDest, StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(sourcePath, destPath, true);
+            }
         }
 
         void ArchiverProcessFailed()
@@ -421,6 +469,10 @@ namespace DnG_AdK_Mapedit
             //Read player count
             Player_count = (int)BitConverter.ToUInt32(DnG_map, current_byte);
             Player_count_text.Text = "Player count: " + Player_count.ToString();
+            if (Player_count < 2)
+            {
+                Multiplayer_suffix_checkbox.Enabled = false;
+            }
             current_byte += 4;
 
             //00 00 00 00 -> blue
@@ -449,8 +501,8 @@ namespace DnG_AdK_Mapedit
                 new[] { 0 },                  // 1 player
                 new[] { 0, 1 },               // 2 players
                 new[] { 0, 2, 3 },            // 3 players
-                new[] { 0, 2, 3, 6 },         // 4 players
-                new[] { 0, 2, 3, 6, 1 },      // 5 players
+                new[] { 0, 2, 3, 1 },         // 4 players
+                new[] { 0, 2, 3, 1, 6 },      // 5 players
                 new[] { 0, 2, 3, 5, 1, 4 }    // 6 players
             };
 
@@ -1787,6 +1839,18 @@ namespace DnG_AdK_Mapedit
             }
         }
 
+        private void Multiplayer_suffix_checkbox_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Multiplayer_suffix_checkbox.Checked)
+            {
+                Multiplayer_prefix_checkbox.Enabled = true;
+            }
+            else
+            {
+                Multiplayer_prefix_checkbox.Enabled = false;
+            }
+        }
+
         Random rand = new Random();
 
         private async void Map_export_button_Click(object sender, EventArgs e)
@@ -1888,7 +1952,6 @@ namespace DnG_AdK_Mapedit
 
                 while (true)
                 {
-                    // If the user cancels or closes the dialog, exit the method
                     if (saveFileDialog.ShowDialog() != DialogResult.OK)
                     {
                         return;
@@ -1896,7 +1959,6 @@ namespace DnG_AdK_Mapedit
 
                     string selectedFileName = Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
 
-                    // Check if the chosen file name is too long
                     if (selectedFileName.Length > 20)
                     {
                         MessageBox.Show(
@@ -1906,13 +1968,58 @@ namespace DnG_AdK_Mapedit
                             MessageBoxIcon.Warning
                         );
 
-                        // Re-prompt the dialog with the invalid name pre-filled
                         saveFileDialog.FileName = Path.GetFileName(saveFileDialog.FileName);
                         continue;
                     }
 
-                    // Valid file name accepted! Exit the loop to proceed with export
                     break;
+                }
+            }
+
+            // Prompt for the secondary file path if requested
+            string secondaryFilePath = null;
+
+            if (Multiplayer_prefix_checkbox.Checked)
+            {
+                using (SaveFileDialog saveFileDialog2 = new SaveFileDialog())
+                {
+                    string primaryDir = Path.GetDirectoryName(saveFileDialog.FileName);
+                    string primaryBase = Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
+                    string ext = Path.GetExtension(saveFileDialog.FileName);
+
+                    // Pre-fill default suggested name for secondary file
+                    string defaultSecondaryName = $"MP_{Player_count}P_{primaryBase.Replace(' ', '_').ToLowerInvariant()}{ext}";
+
+                    saveFileDialog2.Filter = "AdK map file (*.s2m)|*.s2m|All files (*.*)|*.*";
+                    saveFileDialog2.Title = "Select a location for secondary file";
+                    saveFileDialog2.InitialDirectory = primaryDir;
+                    saveFileDialog2.FileName = defaultSecondaryName;
+
+                    while (true)
+                    {
+                        if (saveFileDialog2.ShowDialog() != DialogResult.OK)
+                        {
+                            return; // Exit if user cancels secondary selection
+                        }
+
+                        string selectedSecondaryName = Path.GetFileNameWithoutExtension(saveFileDialog2.FileName);
+
+                        if (selectedSecondaryName.Length > 20)
+                        {
+                            MessageBox.Show(
+                                $"Secondary file name with a length of {selectedSecondaryName.Length} characters exceeds the limit of 20.",
+                                "Secondary file name is too long",
+                                MessageBoxButtons.OK,
+                                MessageBoxIcon.Warning
+                            );
+
+                            saveFileDialog2.FileName = Path.GetFileName(saveFileDialog2.FileName);
+                            continue;
+                        }
+
+                        secondaryFilePath = saveFileDialog2.FileName;
+                        break;
+                    }
                 }
             }
 
@@ -1930,7 +2037,6 @@ namespace DnG_AdK_Mapedit
 
             try
             {
-                // Offload heavy processing to a background thread
                 byte[] exportedMap = await Task.Run(() => MapExportScript(
                     selectedColours,
                     bavariansNoRes, bavariansRes,
@@ -1940,27 +2046,34 @@ namespace DnG_AdK_Mapedit
 
                 if (exportedMap != null)
                 {
-                    string tempFile = Path.Combine(TempFolder, Path.GetFileName(saveFileDialog.FileName));
-                    // Save the generated file
+                    string rawFileName = saveFileDialog.FileName;
+                    string directory = Path.GetDirectoryName(rawFileName);
+                    string baseFileName = Path.GetFileNameWithoutExtension(rawFileName);
+                    string extension = Path.GetExtension(rawFileName);
+
+                    string tempFile = Path.Combine(TempFolder, Path.GetFileName(rawFileName));
                     File.WriteAllBytes(tempFile, exportedMap);
 
-                    // Compress the generated file
                     DnG = false;
                     Compress = true;
                     sourceFileName = tempFile;
-                    destinationFileName = saveFileDialog.FileName;
+
+                    string suffix = Multiplayer_suffix_checkbox.Checked
+                        ? $" ({Player_count} players)"
+                        : " (1 player)";
+
+                    destinationFileName = Path.Combine(directory, $"{baseFileName}{suffix}{extension}");
+                    destination2 = secondaryFilePath;
 
                     Archiver();
                 }
-                else
-                {
-                    Export_wait.Visible = false;
-                    Tab_control.Enabled = true;
-                }
             }
-            catch
+            catch (Exception ex)
             {
-                MessageBox.Show("{ex.Message}", "Map export failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Map export failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
                 Export_wait.Visible = false;
                 Tab_control.Enabled = true;
             }

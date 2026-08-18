@@ -90,6 +90,7 @@
     <EmbeddedResource Include="Included sacrifice presets\Naval battle.dams" />
     <EmbeddedResource Include="Included sacrifice presets\Standard %28enemies close%29.dams" />
     <EmbeddedResource Include="Included sacrifice presets\Standard.dams" />
+    <EmbeddedResource Include="Included sacrifice presets\Corridors.dams" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
