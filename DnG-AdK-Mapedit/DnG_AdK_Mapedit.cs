@@ -2630,6 +2630,41 @@ namespace DnG_AdK_Mapedit
             current_dng_byte = doodads_array_offset_dng;
             current_adk_byte += to_copy_length;
 
+            /*
+            //Copy the animals array length
+            int animals_array_length = BitConverter.ToInt32(DnG_map, current_dng_byte);
+            current_dng_byte += 4;
+            int animals_array_length_adk = BitConverter.ToInt32(AdK_map_resizable.ToArray(), current_adk_byte);
+            AdK_map_resizable.RemoveRange(current_adk_byte, 4);
+            AdK_map_resizable.InsertRange(current_adk_byte, BitConverter.GetBytes(animals_array_length));
+            current_adk_byte += 4;
+            //Copy the animals array to the AdK
+            int animals_array_data_length_adk = animals_array_length_adk * 248;
+            AdK_map_resizable.RemoveRange(current_adk_byte, animals_array_data_length_adk);
+            int animals_array_data_length = animals_array_length * 244;
+            AdK_map_resizable.InsertRange(current_adk_byte, DnG_map.Skip(current_dng_byte).Take(animals_array_data_length));
+            current_dng_byte += animals_array_data_length;
+            //Update the animals array
+            for (int i = 0; i < animals_array_length; i++)
+            {
+                //Skip the type
+                current_adk_byte += 4;
+                //Change the format version
+                AdK_map_resizable[current_adk_byte] = 0x03;
+                //Skip to the end of the entry in the array
+                current_adk_byte += 240;
+                //Insert 4 empty bytes at the end of the entry
+                AdK_map_resizable.InsertRange(current_adk_byte, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                current_adk_byte += 4;
+            }
+
+            //Skip doodads header
+            current_adk_byte += 28;
+            //Skip the unused in AdK animal respawn array
+            byte[] doodads_array_header = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x3C, 0xCC, 0xBC, 0x8E, 0x0D, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
+            current_dng_byte = FindSequenceOffset(DnG_map, doodads_array_header, current_dng_byte);
+            */
+
             //Copy doodads array length
             int doodads_array_length = BitConverter.ToInt32(DnG_map, current_dng_byte);
             current_dng_byte += 4;
