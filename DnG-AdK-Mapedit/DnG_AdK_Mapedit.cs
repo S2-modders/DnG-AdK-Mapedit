@@ -2238,7 +2238,7 @@ namespace DnG_AdK_Mapedit
             string[] bavariansResearch = { "53b934cd", "e004ee9d", "1febb7fd", "bc7b97fd", "5e280c63", "735a329d", "baabb874", "5b539fba", "323126d4", "d4f78e4d", "4b315faf", "a2ce1103", "8958e51d", "480a25f4", "7ba91903", "2c7fddfd" };
 
             string[] egyptiansNoResearch = { "96ab1d94", "87470603", "52c3746d", "4ac6d3c4", "b2764844" };
-            string[] egyptiansResearch = { "4c23e453", "e004ee9d", "00daaec4", "96ab1d94", "35b39674", "db9f1aed", "2b884d0d", "7086ed6d", "737c4144", "2000b053", "58519ab3", "6bedea64", "5a556ffa", "737c9083", "bbf37663", "6bf2dc44", "f97b6124", "0c3362ad", "0635f84d" };
+            string[] egyptiansResearch = { "4c23e453", "c5af4653", "00daaec4", "35b39674", "db9f1aed", "2b884d0d", "7086ed6d", "737c4144", "2000b053", "58519ab3", "6bedea64", "5a556ffa", "737c9083", "bbf37663", "6bf2dc44", "f97b6124", "0c3362ad", "0635f84d" };
 
             string[] scotsNoResearch = { "da50a154", "510391dd", "11e6f6b4", "26185ba4", "3625fdbd" };
             string[] scotsResearch = { "43a1346d", "dd894733", "a3977964", "7fa73f44", "8c7e4874", "703c5903", "ec961034", "ef8c23f4", "e6378a64", "3abb0cb4", "b3000463", "da0f6d93", "335a3c43", "f4b62dc4", "7e8bf323", "b2b7e8bd" };
