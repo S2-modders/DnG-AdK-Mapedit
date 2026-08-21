@@ -1997,7 +1997,7 @@ namespace DnG_AdK_Mapedit
             }
         }
 
-        // Pre-parsed static inverted byte arrays for sacrifice items to avoid runtime string operations
+        // Pre-parsed static inverted byte arrays for sacrifice items
         private static readonly byte[][] BavariansNoResearch = ParseSacrificeHex("35c4b71d", "a2f5e32d", "6fefede4", "f383de73");
         private static readonly byte[][] BavariansResearch = ParseSacrificeHex("53b934cd", "e004ee9d", "1febb7fd", "bc7b97fd", "5e280c63", "735a329d", "baabb874", "5b539fba", "323126d4", "d4f78e4d", "4b315faf", "a2ce1103", "8958e51d", "480a25f4", "7ba91903", "2c7fddfd");
         private static readonly byte[][] EgyptiansNoResearch = ParseSacrificeHex("96ab1d94", "87470603", "52c3746d", "4ac6d3c4", "b2764844");
@@ -2018,6 +2018,7 @@ namespace DnG_AdK_Mapedit
             }
             return result;
         }
+
         private byte[] MapExportScript(
             int[] selectedColours,
             int[] bavariansNoRes, int[] bavariansRes,
@@ -2127,31 +2128,33 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 564;
 
             // Sacrifices Section
-            MemoryStream sacrificeData = new MemoryStream();
+            byte[] sacBytes;
+            using (MemoryStream sacrificeData = new MemoryStream())
             using (BinaryWriter writer = new BinaryWriter(sacrificeData))
             {
                 writer.Write(3); // 3 nations
 
-                // Bavarians
+                // Bavarians (.Reverse() matches the old InsertRange LIFO behavior)
                 writer.Write(new byte[] { 0xA3, 0x78, 0xD3, 0xB0 });
                 writer.Write(bavariansNoRes.Length + bavariansRes.Length);
-                foreach (int idx in bavariansNoRes) writer.Write(BavariansNoResearch[idx]);
-                foreach (int idx in bavariansRes) writer.Write(BavariansResearch[idx]);
+                foreach (int idx in bavariansNoRes.Reverse()) writer.Write(BavariansNoResearch[idx]);
+                foreach (int idx in bavariansRes.Reverse()) writer.Write(BavariansResearch[idx]);
 
                 // Egyptians
                 writer.Write(new byte[] { 0x33, 0x6D, 0x01, 0xF5 });
                 writer.Write(egyptiansNoRes.Length + egyptiansRes.Length);
-                foreach (int idx in egyptiansNoRes) writer.Write(EgyptiansNoResearch[idx]);
-                foreach (int idx in egyptiansRes) writer.Write(EgyptiansResearch[idx]);
+                foreach (int idx in egyptiansNoRes.Reverse()) writer.Write(EgyptiansNoResearch[idx]);
+                foreach (int idx in egyptiansRes.Reverse()) writer.Write(EgyptiansResearch[idx]);
 
                 // Scots
                 writer.Write(new byte[] { 0xA3, 0xFD, 0x7F, 0x49 });
                 writer.Write(scotsNoRes.Length + scotsRes.Length);
-                foreach (int idx in scotsNoRes) writer.Write(ScotsNoResearch[idx]);
-                foreach (int idx in scotsRes) writer.Write(ScotsResearch[idx]);
+                foreach (int idx in scotsNoRes.Reverse()) writer.Write(ScotsNoResearch[idx]);
+                foreach (int idx in scotsRes.Reverse()) writer.Write(ScotsResearch[idx]);
+
+                sacBytes = sacrificeData.ToArray();
             }
 
-            byte[] sacBytes = sacrificeData.ToArray();
             //Overwrite sacrifices section
             ReplaceStreamBytes(adkStream, current_adk_byte, 140, sacBytes);
             current_adk_byte += sacBytes.Length;
@@ -2328,6 +2331,7 @@ namespace DnG_AdK_Mapedit
                 }
             }
 
+            adkStream.Position = 0;
             adkStream.Write(adkBuffer, 0, adkBuffer.Length);
 
             current_adk_byte = gridstate_array_beginning + textures_data_length;
@@ -2691,29 +2695,35 @@ namespace DnG_AdK_Mapedit
                 current_adk_byte += harbourBytes.Length;
             }
 
-            //Skip caves data header
+            // Skip caves data header
             current_adk_byte += 16;
-            //Wipe template caves data (end of the file)
+
+            // Wipe template caves data (end of the file)
             adkStream.SetLength(current_adk_byte);
-            
-            using (BinaryWriter writer = new BinaryWriter(adkStream))
+            adkStream.Position = current_adk_byte;
+
+            // Pass leaveOpen: true so disposing the writer won't close adkStream
+            using (BinaryWriter writer = new BinaryWriter(adkStream, System.Text.Encoding.UTF8, leaveOpen: true))
             {
-                //Write the caves data to the AdK map
+                // Write the caves data to the AdK map
                 writer.Write(Caves_list.Count);
                 foreach (var cave in Caves_list)
                 {
-                    writer.Write((byte[])CaveTypes[cave.type].Clone());
+                    writer.Write(CaveTypes[cave.type]);
                     writer.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x74, 0x76, 0x80, 0x4A, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                     writer.Write(GenerateUniqueId());
+                    // Pattern cursor
                     writer.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
+                    // X
                     writer.Write(cave.pos_x);
+                    // Y
                     writer.Write(cave.pos_y);
                 }
-                //Add empty 4 bytes at the end of the file
+                // Add empty 4 bytes at the end of the file
                 writer.Write(0);
             }
 
-            //Remove water sign doodad with no texture (currently waiting for the map with a lifetime doodad to appear)
+            // Remove water sign doodad with no texture (currently waiting for the map with a lifetime doodad to appear)
 
             return adkStream.ToArray();
         }
