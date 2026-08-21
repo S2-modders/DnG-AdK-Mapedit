@@ -1967,7 +1967,7 @@ namespace DnG_AdK_Mapedit
                         string baseFileName = Path.GetFileNameWithoutExtension(saveFileDialog.FileName);
                         string extension = Path.GetExtension(saveFileDialog.FileName);
 
-                        destinationFileName = $"MP_{Player_count}P_{baseFileName.Replace(' ', '_').ToLowerInvariant()}{extension}";
+                        destinationFileName = Path.Combine(directory, $"MP_{Player_count}P_{baseFileName.Replace(' ', '_').ToLowerInvariant()}{extension}");
                     }
                     else
                     {
