@@ -30,105 +30,37 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(DnG_AdK_Mapedit));
-            System.Windows.Forms.ListViewItem listViewItem31 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem32 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem33 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem34 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem35 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem36 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 5, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem37 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 6, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem38 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 7, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem39 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 8, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem40 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 9, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem41 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 10, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem42 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 11, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem43 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 12, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem44 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 13, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem45 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 14, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem46 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 15, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem47 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem48 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem49 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem50 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem51 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem52 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 5, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem53 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 6, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem54 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 7, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem55 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 8, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem56 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 9, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem57 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 10, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem58 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 11, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem59 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 12, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem60 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 13, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem61 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 14, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem62 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 15, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem81 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 16, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem82 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 17, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem63 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem64 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem65 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem66 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem67 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem68 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 5, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem69 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 6, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem70 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 7, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 5, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem71 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 8, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 6, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem72 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 9, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 7, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem73 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 10, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 8, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem74 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 11, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 9, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem75 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 12, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 10, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem76 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 13, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 11, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem77 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 14, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 12, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem78 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 13, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem79 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 14, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem80 = new System.Windows.Forms.ListViewItem(new string[] {
             ""}, 15, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem1 = new System.Windows.Forms.ListViewItem(new string[] {
             ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
@@ -139,24 +71,92 @@
             System.Windows.Forms.ListViewItem listViewItem4 = new System.Windows.Forms.ListViewItem(new string[] {
             ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem5 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem6 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem7 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem8 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
-            System.Windows.Forms.ListViewItem listViewItem9 = new System.Windows.Forms.ListViewItem(new string[] {
             ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem6 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 5, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem7 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 6, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem8 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 7, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem9 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 8, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem10 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 9, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem11 = new System.Windows.Forms.ListViewItem(new string[] {
-            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 10, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem12 = new System.Windows.Forms.ListViewItem(new string[] {
-            "Stone"}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 11, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem13 = new System.Windows.Forms.ListViewItem(new string[] {
-            "Gemstone"}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            ""}, 12, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             System.Windows.Forms.ListViewItem listViewItem14 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 13, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem15 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 14, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem16 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 15, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem81 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 16, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem82 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 17, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem17 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem18 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem19 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem20 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem21 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem22 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 5, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem23 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 6, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem24 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 7, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem25 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 8, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem26 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 9, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem27 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 10, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem28 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 11, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem29 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 12, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem30 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 13, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem31 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 14, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem32 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 15, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem33 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem34 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem35 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem36 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem37 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem38 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem39 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem40 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem41 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem42 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 0, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem43 = new System.Windows.Forms.ListViewItem(new string[] {
+            ""}, 1, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem44 = new System.Windows.Forms.ListViewItem(new string[] {
+            "Stone"}, 2, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem45 = new System.Windows.Forms.ListViewItem(new string[] {
+            "Gemstone"}, 3, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
+            System.Windows.Forms.ListViewItem listViewItem46 = new System.Windows.Forms.ListViewItem(new string[] {
             ""}, 4, System.Drawing.SystemColors.WindowText, System.Drawing.SystemColors.Window, new System.Drawing.Font("Segoe UI Variable Text", 9F));
             this.DnG_map_text = new System.Windows.Forms.Label();
             this.DnG_map_path = new System.Windows.Forms.TextBox();
@@ -305,7 +305,8 @@
             this.Export_wait = new System.Windows.Forms.Label();
             this.Ambient_sounds_warning = new System.Windows.Forms.Label();
             this.Map_export_panel = new System.Windows.Forms.Panel();
-            this.Map_prieview_checkbox = new System.Windows.Forms.CheckBox();
+            this.Multiplayer_prefix_checkbox = new System.Windows.Forms.CheckBox();
+            this.Map_preview_checkbox = new System.Windows.Forms.CheckBox();
             this.Map_export_button = new System.Windows.Forms.Button();
             this.Map_export_text = new System.Windows.Forms.Label();
             this.Map_preset_panel = new System.Windows.Forms.Panel();
@@ -317,8 +318,6 @@
             this.Map_preset_text = new System.Windows.Forms.Label();
             this.Map_preset_export = new System.Windows.Forms.Button();
             this.Map_preset_load = new System.Windows.Forms.Button();
-            this.Multiplayer_suffix_checkbox = new System.Windows.Forms.CheckBox();
-            this.Multiplayer_prefix_checkbox = new System.Windows.Forms.CheckBox();
             this.Tab_control.SuspendLayout();
             this.Map_info_tab.SuspendLayout();
             this.Resource_info.SuspendLayout();
@@ -2021,39 +2020,39 @@
             this.Sacrifices_research_Scots.Alignment = System.Windows.Forms.ListViewAlignment.Left;
             this.Sacrifices_research_Scots.CheckBoxes = true;
             this.Sacrifices_research_Scots.HideSelection = false;
-            listViewItem31.StateImageIndex = 0;
-            listViewItem32.StateImageIndex = 0;
-            listViewItem33.StateImageIndex = 0;
-            listViewItem34.StateImageIndex = 0;
-            listViewItem35.StateImageIndex = 0;
-            listViewItem36.StateImageIndex = 0;
-            listViewItem37.StateImageIndex = 0;
-            listViewItem38.StateImageIndex = 0;
-            listViewItem39.StateImageIndex = 0;
-            listViewItem40.StateImageIndex = 0;
-            listViewItem41.StateImageIndex = 0;
-            listViewItem42.StateImageIndex = 0;
-            listViewItem43.StateImageIndex = 0;
-            listViewItem44.StateImageIndex = 0;
-            listViewItem45.StateImageIndex = 0;
-            listViewItem46.StateImageIndex = 0;
+            listViewItem65.StateImageIndex = 0;
+            listViewItem66.StateImageIndex = 0;
+            listViewItem67.StateImageIndex = 0;
+            listViewItem68.StateImageIndex = 0;
+            listViewItem69.StateImageIndex = 0;
+            listViewItem70.StateImageIndex = 0;
+            listViewItem71.StateImageIndex = 0;
+            listViewItem72.StateImageIndex = 0;
+            listViewItem73.StateImageIndex = 0;
+            listViewItem74.StateImageIndex = 0;
+            listViewItem75.StateImageIndex = 0;
+            listViewItem76.StateImageIndex = 0;
+            listViewItem77.StateImageIndex = 0;
+            listViewItem78.StateImageIndex = 0;
+            listViewItem79.StateImageIndex = 0;
+            listViewItem80.StateImageIndex = 0;
             this.Sacrifices_research_Scots.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem31,
-            listViewItem32,
-            listViewItem33,
-            listViewItem34,
-            listViewItem35,
-            listViewItem36,
-            listViewItem37,
-            listViewItem38,
-            listViewItem39,
-            listViewItem40,
-            listViewItem41,
-            listViewItem42,
-            listViewItem43,
-            listViewItem44,
-            listViewItem45,
-            listViewItem46});
+            listViewItem65,
+            listViewItem66,
+            listViewItem67,
+            listViewItem68,
+            listViewItem69,
+            listViewItem70,
+            listViewItem71,
+            listViewItem72,
+            listViewItem73,
+            listViewItem74,
+            listViewItem75,
+            listViewItem76,
+            listViewItem77,
+            listViewItem78,
+            listViewItem79,
+            listViewItem80});
             this.Sacrifices_research_Scots.Location = new System.Drawing.Point(3, 356);
             this.Sacrifices_research_Scots.MinimumSize = new System.Drawing.Size(0, 60);
             this.Sacrifices_research_Scots.Name = "Sacrifices_research_Scots";
@@ -2091,41 +2090,41 @@
             this.Sacrifices_research_Egyptians.Alignment = System.Windows.Forms.ListViewAlignment.Left;
             this.Sacrifices_research_Egyptians.CheckBoxes = true;
             this.Sacrifices_research_Egyptians.HideSelection = false;
-            listViewItem47.StateImageIndex = 0;
-            listViewItem48.StateImageIndex = 0;
-            listViewItem49.StateImageIndex = 0;
-            listViewItem50.StateImageIndex = 0;
-            listViewItem51.StateImageIndex = 0;
-            listViewItem52.StateImageIndex = 0;
-            listViewItem53.StateImageIndex = 0;
-            listViewItem54.StateImageIndex = 0;
-            listViewItem55.StateImageIndex = 0;
-            listViewItem56.StateImageIndex = 0;
-            listViewItem57.StateImageIndex = 0;
-            listViewItem58.StateImageIndex = 0;
-            listViewItem59.StateImageIndex = 0;
-            listViewItem60.StateImageIndex = 0;
-            listViewItem61.StateImageIndex = 0;
-            listViewItem62.StateImageIndex = 0;
+            listViewItem1.StateImageIndex = 0;
+            listViewItem2.StateImageIndex = 0;
+            listViewItem3.StateImageIndex = 0;
+            listViewItem4.StateImageIndex = 0;
+            listViewItem5.StateImageIndex = 0;
+            listViewItem6.StateImageIndex = 0;
+            listViewItem7.StateImageIndex = 0;
+            listViewItem8.StateImageIndex = 0;
+            listViewItem9.StateImageIndex = 0;
+            listViewItem10.StateImageIndex = 0;
+            listViewItem11.StateImageIndex = 0;
+            listViewItem12.StateImageIndex = 0;
+            listViewItem13.StateImageIndex = 0;
+            listViewItem14.StateImageIndex = 0;
+            listViewItem15.StateImageIndex = 0;
+            listViewItem16.StateImageIndex = 0;
             listViewItem81.StateImageIndex = 0;
             listViewItem82.StateImageIndex = 0;
             this.Sacrifices_research_Egyptians.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem47,
-            listViewItem48,
-            listViewItem49,
-            listViewItem50,
-            listViewItem51,
-            listViewItem52,
-            listViewItem53,
-            listViewItem54,
-            listViewItem55,
-            listViewItem56,
-            listViewItem57,
-            listViewItem58,
-            listViewItem59,
-            listViewItem60,
-            listViewItem61,
-            listViewItem62,
+            listViewItem1,
+            listViewItem2,
+            listViewItem3,
+            listViewItem4,
+            listViewItem5,
+            listViewItem6,
+            listViewItem7,
+            listViewItem8,
+            listViewItem9,
+            listViewItem10,
+            listViewItem11,
+            listViewItem12,
+            listViewItem13,
+            listViewItem14,
+            listViewItem15,
+            listViewItem16,
             listViewItem81,
             listViewItem82});
             this.Sacrifices_research_Egyptians.Location = new System.Drawing.Point(3, 297);
@@ -2167,39 +2166,39 @@
             this.Sacrifices_research_Bavarians.Alignment = System.Windows.Forms.ListViewAlignment.Left;
             this.Sacrifices_research_Bavarians.CheckBoxes = true;
             this.Sacrifices_research_Bavarians.HideSelection = false;
-            listViewItem63.StateImageIndex = 0;
-            listViewItem64.StateImageIndex = 0;
-            listViewItem65.StateImageIndex = 0;
-            listViewItem66.StateImageIndex = 0;
-            listViewItem67.StateImageIndex = 0;
-            listViewItem68.StateImageIndex = 0;
-            listViewItem69.StateImageIndex = 0;
-            listViewItem70.StateImageIndex = 0;
-            listViewItem71.StateImageIndex = 0;
-            listViewItem72.StateImageIndex = 0;
-            listViewItem73.StateImageIndex = 0;
-            listViewItem74.StateImageIndex = 0;
-            listViewItem75.StateImageIndex = 0;
-            listViewItem76.StateImageIndex = 0;
-            listViewItem77.StateImageIndex = 0;
-            listViewItem78.StateImageIndex = 0;
+            listViewItem17.StateImageIndex = 0;
+            listViewItem18.StateImageIndex = 0;
+            listViewItem19.StateImageIndex = 0;
+            listViewItem20.StateImageIndex = 0;
+            listViewItem21.StateImageIndex = 0;
+            listViewItem22.StateImageIndex = 0;
+            listViewItem23.StateImageIndex = 0;
+            listViewItem24.StateImageIndex = 0;
+            listViewItem25.StateImageIndex = 0;
+            listViewItem26.StateImageIndex = 0;
+            listViewItem27.StateImageIndex = 0;
+            listViewItem28.StateImageIndex = 0;
+            listViewItem29.StateImageIndex = 0;
+            listViewItem30.StateImageIndex = 0;
+            listViewItem31.StateImageIndex = 0;
+            listViewItem32.StateImageIndex = 0;
             this.Sacrifices_research_Bavarians.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem63,
-            listViewItem64,
-            listViewItem65,
-            listViewItem66,
-            listViewItem67,
-            listViewItem68,
-            listViewItem69,
-            listViewItem70,
-            listViewItem71,
-            listViewItem72,
-            listViewItem73,
-            listViewItem74,
-            listViewItem75,
-            listViewItem76,
-            listViewItem77,
-            listViewItem78});
+            listViewItem17,
+            listViewItem18,
+            listViewItem19,
+            listViewItem20,
+            listViewItem21,
+            listViewItem22,
+            listViewItem23,
+            listViewItem24,
+            listViewItem25,
+            listViewItem26,
+            listViewItem27,
+            listViewItem28,
+            listViewItem29,
+            listViewItem30,
+            listViewItem31,
+            listViewItem32});
             this.Sacrifices_research_Bavarians.Location = new System.Drawing.Point(3, 240);
             this.Sacrifices_research_Bavarians.MinimumSize = new System.Drawing.Size(0, 60);
             this.Sacrifices_research_Bavarians.Name = "Sacrifices_research_Bavarians";
@@ -2249,15 +2248,15 @@
             this.Sacrifices_no_research_Bavarians.Alignment = System.Windows.Forms.ListViewAlignment.Left;
             this.Sacrifices_no_research_Bavarians.CheckBoxes = true;
             this.Sacrifices_no_research_Bavarians.HideSelection = false;
-            listViewItem1.StateImageIndex = 0;
-            listViewItem2.StateImageIndex = 0;
-            listViewItem3.StateImageIndex = 0;
-            listViewItem4.StateImageIndex = 0;
+            listViewItem33.StateImageIndex = 0;
+            listViewItem34.StateImageIndex = 0;
+            listViewItem35.StateImageIndex = 0;
+            listViewItem36.StateImageIndex = 0;
             this.Sacrifices_no_research_Bavarians.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem1,
-            listViewItem2,
-            listViewItem3,
-            listViewItem4});
+            listViewItem33,
+            listViewItem34,
+            listViewItem35,
+            listViewItem36});
             this.Sacrifices_no_research_Bavarians.Location = new System.Drawing.Point(3, 31);
             this.Sacrifices_no_research_Bavarians.MinimumSize = new System.Drawing.Size(0, 60);
             this.Sacrifices_no_research_Bavarians.Name = "Sacrifices_no_research_Bavarians";
@@ -2344,17 +2343,17 @@
             this.Sacrifices_no_research_Scots.Alignment = System.Windows.Forms.ListViewAlignment.Left;
             this.Sacrifices_no_research_Scots.CheckBoxes = true;
             this.Sacrifices_no_research_Scots.HideSelection = false;
-            listViewItem5.StateImageIndex = 0;
-            listViewItem6.StateImageIndex = 0;
-            listViewItem7.StateImageIndex = 0;
-            listViewItem8.StateImageIndex = 0;
-            listViewItem9.StateImageIndex = 0;
+            listViewItem37.StateImageIndex = 0;
+            listViewItem38.StateImageIndex = 0;
+            listViewItem39.StateImageIndex = 0;
+            listViewItem40.StateImageIndex = 0;
+            listViewItem41.StateImageIndex = 0;
             this.Sacrifices_no_research_Scots.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem5,
-            listViewItem6,
-            listViewItem7,
-            listViewItem8,
-            listViewItem9});
+            listViewItem37,
+            listViewItem38,
+            listViewItem39,
+            listViewItem40,
+            listViewItem41});
             this.Sacrifices_no_research_Scots.Location = new System.Drawing.Point(3, 145);
             this.Sacrifices_no_research_Scots.MinimumSize = new System.Drawing.Size(0, 60);
             this.Sacrifices_no_research_Scots.Name = "Sacrifices_no_research_Scots";
@@ -2391,17 +2390,17 @@
             this.Sacrifices_no_research_Egyptians.Alignment = System.Windows.Forms.ListViewAlignment.Left;
             this.Sacrifices_no_research_Egyptians.CheckBoxes = true;
             this.Sacrifices_no_research_Egyptians.HideSelection = false;
-            listViewItem10.StateImageIndex = 0;
-            listViewItem11.StateImageIndex = 0;
-            listViewItem12.StateImageIndex = 0;
-            listViewItem13.StateImageIndex = 0;
-            listViewItem14.StateImageIndex = 0;
+            listViewItem42.StateImageIndex = 0;
+            listViewItem43.StateImageIndex = 0;
+            listViewItem44.StateImageIndex = 0;
+            listViewItem45.StateImageIndex = 0;
+            listViewItem46.StateImageIndex = 0;
             this.Sacrifices_no_research_Egyptians.Items.AddRange(new System.Windows.Forms.ListViewItem[] {
-            listViewItem10,
-            listViewItem11,
-            listViewItem12,
-            listViewItem13,
-            listViewItem14});
+            listViewItem42,
+            listViewItem43,
+            listViewItem44,
+            listViewItem45,
+            listViewItem46});
             this.Sacrifices_no_research_Egyptians.Location = new System.Drawing.Point(3, 88);
             this.Sacrifices_no_research_Egyptians.MinimumSize = new System.Drawing.Size(0, 60);
             this.Sacrifices_no_research_Egyptians.Name = "Sacrifices_no_research_Egyptians";
@@ -2695,27 +2694,38 @@
             // 
             this.Map_export_panel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.Map_export_panel.Controls.Add(this.Multiplayer_prefix_checkbox);
-            this.Map_export_panel.Controls.Add(this.Multiplayer_suffix_checkbox);
-            this.Map_export_panel.Controls.Add(this.Map_prieview_checkbox);
+            this.Map_export_panel.Controls.Add(this.Map_preview_checkbox);
             this.Map_export_panel.Controls.Add(this.Map_export_button);
             this.Map_export_panel.Controls.Add(this.Map_export_text);
-            this.Map_export_panel.Location = new System.Drawing.Point(604, 65);
+            this.Map_export_panel.Location = new System.Drawing.Point(604, 95);
             this.Map_export_panel.MinimumSize = new System.Drawing.Size(595, 0);
             this.Map_export_panel.Name = "Map_export_panel";
-            this.Map_export_panel.Size = new System.Drawing.Size(595, 211);
+            this.Map_export_panel.Size = new System.Drawing.Size(595, 161);
             this.Map_export_panel.TabIndex = 6;
             // 
-            // Map_prieview_checkbox
+            // Multiplayer_prefix_checkbox
             // 
-            this.Map_prieview_checkbox.AutoSize = true;
-            this.Map_prieview_checkbox.Location = new System.Drawing.Point(3, 40);
-            this.Map_prieview_checkbox.MinimumSize = new System.Drawing.Size(585, 0);
-            this.Map_prieview_checkbox.Name = "Map_prieview_checkbox";
-            this.Map_prieview_checkbox.Size = new System.Drawing.Size(585, 32);
-            this.Map_prieview_checkbox.TabIndex = 5;
-            this.Map_prieview_checkbox.Text = "Copy map prieview";
-            this.Map_prieview_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.Map_prieview_checkbox.UseVisualStyleBackColor = true;
+            this.Multiplayer_prefix_checkbox.AutoSize = true;
+            this.Multiplayer_prefix_checkbox.Location = new System.Drawing.Point(-1, 122);
+            this.Multiplayer_prefix_checkbox.MinimumSize = new System.Drawing.Size(585, 0);
+            this.Multiplayer_prefix_checkbox.Name = "Multiplayer_prefix_checkbox";
+            this.Multiplayer_prefix_checkbox.Size = new System.Drawing.Size(585, 32);
+            this.Multiplayer_prefix_checkbox.TabIndex = 7;
+            this.Multiplayer_prefix_checkbox.Text = "Use a multiplayer map naming scheme";
+            this.Multiplayer_prefix_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.Multiplayer_prefix_checkbox.UseVisualStyleBackColor = true;
+            // 
+            // Map_preview_checkbox
+            // 
+            this.Map_preview_checkbox.AutoSize = true;
+            this.Map_preview_checkbox.Location = new System.Drawing.Point(3, 40);
+            this.Map_preview_checkbox.MinimumSize = new System.Drawing.Size(585, 0);
+            this.Map_preview_checkbox.Name = "Map_preview_checkbox";
+            this.Map_preview_checkbox.Size = new System.Drawing.Size(585, 32);
+            this.Map_preview_checkbox.TabIndex = 5;
+            this.Map_preview_checkbox.Text = "Copy map preview";
+            this.Map_preview_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.Map_preview_checkbox.UseVisualStyleBackColor = true;
             // 
             // Map_export_button
             // 
@@ -2853,31 +2863,6 @@
             this.Map_preset_load.Text = "Load";
             this.Map_preset_load.UseVisualStyleBackColor = true;
             this.Map_preset_load.Click += new System.EventHandler(this.Map_preset_load_Click);
-            // 
-            // Multiplayer_suffix_checkbox
-            // 
-            this.Multiplayer_suffix_checkbox.AutoSize = true;
-            this.Multiplayer_suffix_checkbox.Location = new System.Drawing.Point(3, 122);
-            this.Multiplayer_suffix_checkbox.MinimumSize = new System.Drawing.Size(585, 0);
-            this.Multiplayer_suffix_checkbox.Name = "Multiplayer_suffix_checkbox";
-            this.Multiplayer_suffix_checkbox.Size = new System.Drawing.Size(585, 32);
-            this.Multiplayer_suffix_checkbox.TabIndex = 6;
-            this.Multiplayer_suffix_checkbox.Text = "Use a muliplayer suffix (singleplayer otherwise)";
-            this.Multiplayer_suffix_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.Multiplayer_suffix_checkbox.UseVisualStyleBackColor = true;
-            this.Multiplayer_suffix_checkbox.CheckedChanged += new System.EventHandler(this.Multiplayer_suffix_checkbox_CheckedChanged);
-            // 
-            // Multiplayer_prefix_checkbox
-            // 
-            this.Multiplayer_prefix_checkbox.AutoSize = true;
-            this.Multiplayer_prefix_checkbox.Location = new System.Drawing.Point(3, 160);
-            this.Multiplayer_prefix_checkbox.MinimumSize = new System.Drawing.Size(585, 0);
-            this.Multiplayer_prefix_checkbox.Name = "Multiplayer_prefix_checkbox";
-            this.Multiplayer_prefix_checkbox.Size = new System.Drawing.Size(590, 32);
-            this.Multiplayer_prefix_checkbox.TabIndex = 7;
-            this.Multiplayer_prefix_checkbox.Text = "Also create a separate that uses a multiplayer prefix instead";
-            this.Multiplayer_prefix_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.Multiplayer_prefix_checkbox.UseVisualStyleBackColor = true;
             // 
             // DnG_AdK_Mapedit
             // 
@@ -3096,7 +3081,7 @@
         private System.Windows.Forms.Panel Map_export_panel;
         private System.Windows.Forms.Button Sacrifice_preset_export;
         private System.Windows.Forms.Label Ambient_sounds_warning;
-        private System.Windows.Forms.CheckBox Map_prieview_checkbox;
+        private System.Windows.Forms.CheckBox Map_preview_checkbox;
         private System.Windows.Forms.Label Export_wait;
         private System.Windows.Forms.Label Map_prieview_text;
         private System.Windows.Forms.Label Map_info_size;
@@ -3116,7 +3101,6 @@
         private System.Windows.Forms.ComboBox Player_2_select;
         private System.Windows.Forms.CheckBox Sacrifice_included_checkbox;
         private System.Windows.Forms.ComboBox Sacrifice_included_presets;
-        private System.Windows.Forms.CheckBox Multiplayer_suffix_checkbox;
         private System.Windows.Forms.CheckBox Multiplayer_prefix_checkbox;
     }
 }
