@@ -2513,7 +2513,6 @@ namespace DnG_AdK_Mapedit
             //Copy the ambients array data to the AdK map
             int ambientsDataLength = ambientsLength * 24;
             ReplaceStreamBytes(adkStream, current_adk_byte, 0, DnG_map, current_dng_byte, ambientsDataLength);
-            current_adk_byte += ambientsDataLength;
             //End of the DnG map, no need to update current_dng_byte anymore
             current_adk_byte += ambientsDataLength;
 
