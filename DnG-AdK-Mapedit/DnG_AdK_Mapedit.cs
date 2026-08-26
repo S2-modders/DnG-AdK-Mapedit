@@ -2767,6 +2767,7 @@ namespace DnG_AdK_Mapedit
             }
 
             //Logical grid swapping
+            /*
             foreach(var swap in Swap_list)
             {
                 if (swap.tab == 2)
@@ -2793,17 +2794,128 @@ namespace DnG_AdK_Mapedit
                     }
                 }
             }
+            */
 
             //Update logical grid object amounts
             if (Swap_list.Count > 0)
             {
-
+                //Deposits
+                ReplaceStreamBytes(adk_memory_stream, deposits_beginning, 4, BitConverter.GetBytes(deposits_amount), 0, 4);
+                //Animals
+                ReplaceStreamBytes(adk_memory_stream, animals_beginning, 4, BitConverter.GetBytes(animals_amount), 0, 4);
+                //Blocking doodads
+                ReplaceStreamBytes(adk_memory_stream, blocking_doodads_beginning, 4, BitConverter.GetBytes(blocking_doodads_amount), 0, 4);
+                //Ambients
+                ReplaceStreamBytes(adk_memory_stream, ambients_beginning, 4, BitConverter.GetBytes(ambients_amount), 0, 4);
+                //Caves
+                ReplaceStreamBytes(adk_memory_stream, caves_beginning, 4, BitConverter.GetBytes(caves_amount), 0, 4);
             }
 
-            //Swap standard doodads
-            //foreach(var swap in Swap_list.Count)
+            // Doodads grid swapping
+            foreach (var swap in Swap_list)
+            {
+                if (swap.tab != 3) continue;
 
-            //Update doodads grid object amounts
+                bool has_source_lifetime = is_lifetime_dng[swap.from] != 0;
+                bool has_target_lifetime = is_lifetime_adk[swap.to] != 0;
+                int source_type = BitConverter.ToInt32(doodads_dng[swap.from], 0);
+                byte[] target_type = doodads_adk[swap.to];
+
+                // 1. Same array type: In-place ID overwrite for ALL matching instances
+                if (has_source_lifetime == has_target_lifetime)
+                {
+                    int start = has_source_lifetime ? lifetime_doodads_beginning : doodads_beginning;
+                    int count = has_source_lifetime ? lifetime_doodads_amount : doodads_amount;
+                    int stride = has_source_lifetime ? 60 : 56;
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        int pos = start + 4 + (i * stride);
+                        adk_memory_stream.Position = pos;
+
+                        byte[] idBuf = new byte[4];
+                        adk_memory_stream.Read(idBuf, 0, 4);
+
+                        if (BitConverter.ToInt32(idBuf, 0) == source_type)
+                        {
+                            ReplaceStreamBytes(adk_memory_stream, pos, 4, target_type, 0, 4);
+                        }
+                    }
+                    continue;
+                }
+
+                // 2. Cross-array move: Iterate BACKWARD to preserve offsets of unexamined elements
+                int srcStride = has_source_lifetime ? 60 : 56;
+                int initialSrcCount = has_source_lifetime ? lifetime_doodads_amount : doodads_amount;
+
+                for (int i = initialSrcCount - 1; i >= 0; i--)
+                {
+                    int srcStart = has_source_lifetime ? lifetime_doodads_beginning : doodads_beginning;
+                    int pos = srcStart + 4 + (i * srcStride);
+
+                    adk_memory_stream.Position = pos;
+                    byte[] idBuf = new byte[4];
+                    adk_memory_stream.Read(idBuf, 0, 4);
+
+                    if (BitConverter.ToInt32(idBuf, 0) != source_type) continue;
+
+                    // Extract 52-byte payload
+                    byte[] payload = new byte[52];
+                    adk_memory_stream.Read(payload, 0, 52);
+
+                    // Remove source entry from stream
+                    ReplaceStreamBytes(adk_memory_stream, pos, srcStride, new byte[0], 0, 0);
+
+                    // Update source count and offset headers
+                    if (has_source_lifetime)
+                    {
+                        lifetime_doodads_amount--;
+                        ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
+                    }
+                    else
+                    {
+                        doodads_amount--;
+                        ReplaceStreamBytes(adk_memory_stream, doodads_beginning, 4, BitConverter.GetBytes(doodads_amount), 0, 4);
+
+                        // Standard section shrunk by 56 bytes; pull lifetime start back
+                        lifetime_doodads_beginning -= 56;
+                        ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
+                    }
+
+                    // Assemble new target byte payload (Standard = 56B, Lifetime = 60B)
+                    byte[] newEntry = new byte[has_target_lifetime ? 60 : 56];
+                    Buffer.BlockCopy(target_type, 0, newEntry, 0, 4);
+                    Buffer.BlockCopy(payload, 0, newEntry, 4, 52);
+                    if (has_target_lifetime)
+                    {
+                        Buffer.BlockCopy(BitConverter.GetBytes(int.MaxValue), 0, newEntry, 56, 4);
+                    }
+
+                    // Insert into destination section & sync stream offsets
+                    if (has_target_lifetime)
+                    {
+                        int dstPos = lifetime_doodads_beginning + 4 + (lifetime_doodads_amount * 60);
+                        ReplaceStreamBytes(adk_memory_stream, dstPos, 0, newEntry, 0, 60);
+
+                        lifetime_doodads_amount++;
+                        ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
+                    }
+                    else
+                    {
+                        int dstPos = doodads_beginning + 4 + (doodads_amount * 56);
+                        ReplaceStreamBytes(adk_memory_stream, dstPos, 0, newEntry, 0, 56);
+
+                        doodads_amount++;
+                        ReplaceStreamBytes(adk_memory_stream, doodads_beginning, 4, BitConverter.GetBytes(doodads_amount), 0, 4);
+
+                        // Standard section expanded by 56 bytes; push lifetime start forward
+                        lifetime_doodads_beginning += 56;
+                        ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
+                    }
+                }
+            }
+
+            //Update doodads grid amounts
             if (Swap_list.Count > 0)
             {
                 //Standard
@@ -3596,124 +3708,430 @@ namespace DnG_AdK_Mapedit
         };
 
         private static readonly int[] DnG_logical_grid_types = new int[]
-        {
-        1,    //!!!MED StoneResourceA01
-1, //!!!MED StoneResourceA02
-1, //!!!MED StoneResourceA03
-1, //!!!MED StoneResourceA04
-1, //!!!MED StoneResourceA05
-1, //!!!MED StoneResourceA06
-2, //AfricanA
-2, //AsianA
-2, //BirchA
-2, //BirchB
-2, //BirchC
-2, //BroadLeafA
-2, //BroadLeafB
-2, //BroadLeafC
-2, //CypressA
-1, //Field01
-2, //FirA
-2, //FirB
-2, //LavaTreeA
-2, //LavaTreeB
-2, //LavaTreeC
-2, //OliveA
-2, //PalmA
-2, //PalmB
-1, //StoneResourceA01
-1, //StoneResourceA02
-1, //StoneResourceA03
-1, //StoneResourceA04
-1, //StoneResourceA05
-1, //StoneResourceA06
-3, //!!MED rock 1
-3, //!!MED rock 2
-3, //!!MED rock 3
-3, //!!MED rock 4
-3, //((LAVA rock 0
-3, //((LAVA rock 1
-3, //((LAVA rock 2
-3, //Gate01
-3, //rock 1
-3, //rock 2
-3, //rock 3
-3, //rock 4
-4, //Deer
-4, //Elk
-4, //Rabbit
-5, //Beach
-5, //Low Desert Wind
-5, //Middle Desert Wind
-5, //Strong Desert Wind
-5, //bright Forest with birds
-5, //dark Forest with owl
-5, //lava
-5, //meadow with much crickets
-5, //meadow with some crickets and birds
-5, //river
-5, //small water stream
-5, //swamp
-5, //water waves
-        };
+{
+    1, //!!!MED StoneResourceA01
+    1, //!!!MED StoneResourceA02
+    1, //!!!MED StoneResourceA03
+    1, //!!!MED StoneResourceA04
+    1, //!!!MED StoneResourceA05
+    1, //!!!MED StoneResourceA06
+    0, //AfricanA
+    0, //AsianA
+    0, //BirchA
+    0, //BirchB
+    0, //BirchC
+    0, //BroadLeafA
+    0, //BroadLeafB
+    0, //BroadLeafC
+    0, //CypressA
+    1, //Field01
+    0, //FirA
+    0, //FirB
+    0, //LavaTreeA
+    0, //LavaTreeB
+    0, //LavaTreeC
+    0, //OliveA
+    0, //PalmA
+    0, //PalmB
+    1, //StoneResourceA01
+    1, //StoneResourceA02
+    1, //StoneResourceA03
+    1, //StoneResourceA04
+    1, //StoneResourceA05
+    1, //StoneResourceA06
+    3, //!!MED rock 1
+    3, //!!MED rock 2
+    3, //!!MED rock 3
+    3, //!!MED rock 4
+    3, //((LAVA rock 0
+    3, //((LAVA rock 1
+    3, //((LAVA rock 2
+    3, //Gate01
+    3, //rock 1
+    3, //rock 2
+    3, //rock 3
+    3, //rock 4
+    2, //Deer
+    2, //Elk
+    2, //Rabbit
+    4, //Beach
+    4, //Low Desert Wind
+    4, //Middle Desert Wind
+    4, //Strong Desert Wind
+    4, //bright Forest with birds
+    4, //dark Forest with owl
+    4, //lava
+    4, //meadow with much crickets
+    4, //meadow with some crickets and birds
+    4, //river
+    4, //small water stream
+    4, //swamp
+    4, //water waves
+};
 
         private static readonly int[] AdK_logical_grid_types = new int[]
         {
-        1,    //field_egypt
-2, //__HighlandFirA
-2, //__HighlandFirB
-2, //__HighlandFirC
-2, //--SnowFirA straight pos
-2, //--SnowFirB straight pos
-2, //--SnowFirC straight pos
-2, //--SnowFirA random pos
-2, //--SnowFirB random pos
-2, //--SnowFirC random pos
-2, //--SnowFirD random pos
-2, //--SnowFirE random pos
-2, //--SnowFirF random pos
-2, //Weeping Willow
-2, //Birch New 1
-2, //Birch New 2
-2, //Birch New 3
-2, //Chestnut 1
-2, //Chestnut 2
-2, //Chestnut 3
-2, //Apple Tree 1
-2, //Apple Tree 2
-3, //__Highland rock 1
-3, //__Highland rock 2
-3, //__Highland rock 3
-3, //__Highland rock 4
-3, //--Snow Iceberg 1
-3, //--Snow Iceberg 2
-3, //Tent
-3, //Sheep
-4, //Bear
-4, //Ox
-4, //Highland Cattle
-4, //Goat
-4, //Polarbear
-4, //Mountain Hare
-4, //Boar
-4, //Camel
-5, //hightlands less birds
-5, //hightlands normal birds
-5, //hightlands much birds
-5, //ice
-5, //mountains
-6, //AnimalSpawn (Deer, Elk, Rabbit)
-6, //SheepSpawn
-6, //DeerSpawn
-6, //RabbitSpawn
-6, //__Highland Bear Spawn
-6, //!!!MED Bear Spawn
-6, //Bear Spawn
-6, //--Snow Polar Bear Spawn (+ Mountain Hare)
-6, //__Highland Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Highland Cattle)
-6, //Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
-6, //!!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
-6, //!!!MED Camel Spawn
+    1, //field_egypt
+    0, //__HighlandFirA
+    0, //__HighlandFirB
+    0, //__HighlandFirC
+    0, //--SnowFirA straight pos
+    0, //--SnowFirB straight pos
+    0, //--SnowFirC straight pos
+    0, //--SnowFirA random pos
+    0, //--SnowFirB random pos
+    0, //--SnowFirC random pos
+    0, //--SnowFirD random pos
+    0, //--SnowFirE random pos
+    0, //--SnowFirF random pos
+    0, //Weeping Willow
+    0, //Birch New 1
+    0, //Birch New 2
+    0, //Birch New 3
+    0, //Chestnut 1
+    0, //Chestnut 2
+    0, //Chestnut 3
+    0, //Apple Tree 1
+    0, //Apple Tree 2
+    3, //__Highland rock 1
+    3, //__Highland rock 2
+    3, //__Highland rock 3
+    3, //__Highland rock 4
+    3, //--Snow Iceberg 1
+    3, //--Snow Iceberg 2
+    3, //Tent
+    2, //Sheep
+    2, //Bear
+    2, //Ox
+    2, //Highland Cattle
+    2, //Goat
+    2, //Polarbear
+    2, //Mountain Hare
+    2, //Boar
+    2, //Camel
+    4, //hightlands less birds
+    4, //hightlands normal birds
+    4, //hightlands much birds
+    4, //ice
+    4, //mountains
+    5, //AnimalSpawn (Deer, Elk, Rabbit)
+    5, //SheepSpawn
+    5, //DeerSpawn
+    5, //RabbitSpawn
+    5, //__Highland Bear Spawn
+    5, //!!!MED Bear Spawn
+    5, //Bear Spawn
+    5, //--Snow Polar Bear Spawn (+ Mountain Hare)
+    5, //__Highland Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Highland Cattle)
+    5, //Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
+    5, //!!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
+    5, //!!!MED Camel Spawn
         };
+
+        private static readonly byte[][] doodads_dng = new byte[][]
+{
+    new byte[] { 0x30, 0x42, 0xA7, 0xBC }, //!!MED nettle
+    new byte[] { 0x31, 0x42, 0xA7, 0xBC }, //!!MED nettle big
+    new byte[] { 0x32, 0x42, 0xA7, 0xBC }, //!!MED nettle high
+    new byte[] { 0xC0, 0x17, 0xFF, 0xAA }, //((LAVA fog
+    new byte[] { 0xC1, 0x17, 0xFF, 0xAA }, //((LAVA fog high
+    new byte[] { 0xC2, 0x17, 0xFF, 0xAA }, //((LAVA fog highest
+    new byte[] { 0xC3, 0x17, 0xFF, 0xAA }, //((LAVA fog vertical
+    new byte[] { 0x93, 0xB7, 0xEE, 0x90 }, //Coal (few)
+    new byte[] { 0x43, 0x61, 0x09, 0xC5 }, //Coal (medium)
+    new byte[] { 0xF3, 0x6F, 0xAD, 0x00 }, //Coal (much)
+    new byte[] { 0x13, 0x0A, 0xCB, 0xDA }, //DoNotUse-Skull01
+    new byte[] { 0x43, 0x23, 0xF4, 0x28 }, //Empty
+    new byte[] { 0xD3, 0x1A, 0x77, 0x96 }, //Gold (few)
+    new byte[] { 0xA3, 0xC3, 0x6A, 0xE0 }, //Gold (medium)
+    new byte[] { 0x23, 0xD1, 0x12, 0xE8 }, //Gold (much)
+    new byte[] { 0x93, 0xA1, 0x24, 0x31 }, //Granit (few)
+    new byte[] { 0x53, 0x0D, 0xCF, 0x8E }, //Granit (medium)
+    new byte[] { 0x73, 0x47, 0x68, 0x17 }, //Granit (much)
+    new byte[] { 0x63, 0xE5, 0xDB, 0x45 }, //Iron (few)
+    new byte[] { 0xE3, 0x52, 0x3A, 0xD3 }, //Iron (medium)
+    new byte[] { 0x23, 0xF1, 0x82, 0x4B }, //Iron (much)
+    new byte[] { 0x43, 0xA3, 0x1A, 0x12 }, //Water
+    new byte[] { 0x9D, 0xA7, 0xF5, 0xD5 }, //bones0
+    new byte[] { 0xCD, 0x22, 0x51, 0x17 }, //bones1
+    new byte[] { 0xAD, 0xA4, 0x45, 0x72 }, //bones2
+    new byte[] { 0x5D, 0x6E, 0x83, 0x37 }, //bones3
+    new byte[] { 0xDE, 0x2E, 0x27, 0x6B }, //bush01
+    new byte[] { 0xEE, 0x50, 0x20, 0x48 }, //cactus01
+    new byte[] { 0x0E, 0x8B, 0x06, 0xA3 }, //cactus02
+    new byte[] { 0x7E, 0x5B, 0x18, 0xEC }, //cactus03
+    new byte[] { 0x39, 0xAE, 0xF5, 0x89 }, //cactus04
+    new byte[] { 0x1E, 0xE8, 0xBF, 0xF2 }, //dead Tree 1
+    new byte[] { 0x1F, 0xE8, 0xBF, 0xF2 }, //dead Tree 2
+    new byte[] { 0xCE, 0x31, 0x24, 0xA1 }, //fern big
+    new byte[] { 0x33, 0xAE, 0xF5, 0x89 }, //fern medium
+    new byte[] { 0x34, 0xAE, 0xF5, 0x89 }, //fern small
+    new byte[] { 0xE0, 0xF1, 0xA0, 0xAA }, //fingerpost E
+    new byte[] { 0xE6, 0xF1, 0xA0, 0xAA }, //fingerpost N
+    new byte[] { 0xE7, 0xF1, 0xA0, 0xAA }, //fingerpost NE
+    new byte[] { 0xE5, 0xF1, 0xA0, 0xAA }, //fingerpost NW
+    new byte[] { 0xE2, 0xF1, 0xA0, 0xAA }, //fingerpost S
+    new byte[] { 0xE1, 0xF1, 0xA0, 0xAA }, //fingerpost SE
+    new byte[] { 0xE3, 0xF1, 0xA0, 0xAA }, //fingerpost SW
+    new byte[] { 0xE4, 0xF1, 0xA0, 0xAA }, //fingerpost W
+    new byte[] { 0xE4, 0xAF, 0xA1, 0x0F }, //flower red
+    new byte[] { 0xE5, 0xAF, 0xA1, 0x0F }, //flower red big
+    new byte[] { 0xE6, 0xAF, 0xA1, 0x0F }, //flower red high
+    new byte[] { 0xED, 0xAF, 0xA1, 0x0F }, //flower violet
+    new byte[] { 0xEE, 0xAF, 0xA1, 0x0F }, //flower violet big
+    new byte[] { 0xEF, 0xAF, 0xA1, 0x0F }, //flower violet high
+    new byte[] { 0xE7, 0xAF, 0xA1, 0x0F }, //flower white
+    new byte[] { 0xE8, 0xAF, 0xA1, 0x0F }, //flower white big
+    new byte[] { 0xE9, 0xAF, 0xA1, 0x0F }, //flower white high
+    new byte[] { 0xEA, 0xAF, 0xA1, 0x0F }, //flower yellow
+    new byte[] { 0xEB, 0xAF, 0xA1, 0x0F }, //flower yellow big
+    new byte[] { 0xEC, 0xAF, 0xA1, 0x0F }, //flower yellow high
+    new byte[] { 0xF0, 0xAF, 0xA1, 0x0F }, //grass translucent
+    new byte[] { 0xF1, 0xAF, 0xA1, 0x0F }, //grass translucent big dark
+    new byte[] { 0xAE, 0x37, 0xD1, 0x3A }, //grass01
+    new byte[] { 0xAF, 0x37, 0xD1, 0x3A }, //grass02
+    new byte[] { 0xB0, 0x37, 0xD1, 0x3A }, //grass03
+    new byte[] { 0xB1, 0x37, 0xD1, 0x3A }, //grass04
+    new byte[] { 0x36, 0xAE, 0xF5, 0x89 }, //high flower red
+    new byte[] { 0x35, 0xAE, 0xF5, 0x89 }, //high flower red big
+    new byte[] { 0xBE, 0x34, 0xD4, 0x04 }, //high flower white
+    new byte[] { 0xFE, 0xCD, 0x49, 0xFB }, //high flower white big
+    new byte[] { 0x38, 0xAE, 0xF5, 0x89 }, //high flower yellow
+    new byte[] { 0x37, 0xAE, 0xF5, 0x89 }, //high flower yellow big
+    new byte[] { 0xF2, 0xEF, 0xAD, 0xAC }, //mushroom brown
+    new byte[] { 0xF3, 0xEF, 0xAD, 0xAC }, //mushroom brown big
+    new byte[] { 0xF0, 0xEF, 0xAD, 0xAC }, //mushroom red
+    new byte[] { 0xF1, 0xEF, 0xAD, 0xAC }, //mushroom red big
+    new byte[] { 0xE1, 0xAF, 0xA1, 0x0F }, //nettle
+    new byte[] { 0xE2, 0xAF, 0xA1, 0x0F }, //nettle big
+    new byte[] { 0xE3, 0xAF, 0xA1, 0x0F }, //nettle high
+    new byte[] { 0x10, 0xE3, 0x11, 0xFA }, //shell
+    new byte[] { 0x11, 0xE3, 0x11, 0xFA }, //shell small
+    new byte[] { 0x4E, 0x1F, 0x5C, 0x45 }, //stone01
+    new byte[] { 0x4F, 0x1F, 0x5C, 0x45 }, //stone01 grey
+    new byte[] { 0x3E, 0x02, 0x36, 0xEA }, //stone02
+    new byte[] { 0x3F, 0x02, 0x36, 0xEA }, //stone02 grey
+    new byte[] { 0x8E, 0xD8, 0x41, 0x9F }, //stone03
+    new byte[] { 0x8F, 0xD8, 0x41, 0x9F }, //stone03 grey
+    new byte[] { 0x6E, 0xBE, 0xCB, 0xA7 }, //stone04
+    new byte[] { 0x6F, 0xBE, 0xCB, 0xA7 }, //stone04 grey
+    new byte[] { 0xE3, 0xBE, 0xDE, 0xFA }, //swamp calmus 01
+    new byte[] { 0xE4, 0xBE, 0xDE, 0xFA }, //swamp calmus 02
+    new byte[] { 0xE5, 0xBE, 0xDE, 0xFA }, //swamp calmus 03
+    new byte[] { 0xE1, 0xBE, 0xDE, 0xFA }, //swampthing01
+    new byte[] { 0xE2, 0xBE, 0xDE, 0xFA }, //swampthing02
+    new byte[] { 0x30, 0xA2, 0xD6, 0xF1 }, //waterlily 1
+    new byte[] { 0x31, 0xA2, 0xD6, 0xF1 }, //waterlily 2
+    new byte[] { 0x30, 0xA2, 0xC6, 0xF1 }, //waterplant 1
+    new byte[] { 0x31, 0xA2, 0xC6, 0xF1 }, //waterplant 2
+    new byte[] { 0x32, 0xA2, 0xC6, 0xF1 }, //waterplant 3
+    new byte[] { 0x10, 0xE2, 0x11, 0xFA }, //wreck
+    new byte[] { 0x11, 0xE2, 0x11, 0xFA }  //wreck big
+};
+
+        private static readonly int[] is_lifetime_dng = new int[]
+{
+    0, //!!MED nettle
+    0, //!!MED nettle big
+    0, //!!MED nettle high
+    0, //((LAVA fog
+    0, //((LAVA fog high
+    0, //((LAVA fog highest
+    0, //((LAVA fog vertical
+    1, //Coal (few)
+    1, //Coal (medium)
+    1, //Coal (much)
+    0, //DoNotUse-Skull01
+    1, //Empty
+    1, //Gold (few)
+    1, //Gold (medium)
+    1, //Gold (much)
+    1, //Granit (few)
+    1, //Granit (medium)
+    1, //Granit (much)
+    1, //Iron (few)
+    1, //Iron (medium)
+    1, //Iron (much)
+    1, //Water
+    0, //bones0
+    0, //bones1
+    0, //bones2
+    0, //bones3
+    0, //bush01
+    0, //cactus01
+    0, //cactus02
+    0, //cactus03
+    0, //cactus04
+    0, //dead Tree 1
+    0, //dead Tree 2
+    0, //fern big
+    0, //fern medium
+    0, //fern small
+    0, //fingerpost E
+    0, //fingerpost N
+    0, //fingerpost NE
+    0, //fingerpost NW
+    0, //fingerpost S
+    0, //fingerpost SE
+    0, //fingerpost SW
+    0, //fingerpost W
+    0, //flower red
+    0, //flower red big
+    0, //flower red high
+    0, //flower violet
+    0, //flower violet big
+    0, //flower violet high
+    0, //flower white
+    0, //flower white big
+    0, //flower white high
+    0, //flower yellow
+    0, //flower yellow big
+    0, //flower yellow high
+    0, //grass translucent
+    0, //grass translucent big dark
+    0, //grass01
+    0, //grass02
+    0, //grass03
+    0, //grass04
+    0, //high flower red
+    0, //high flower red big
+    0, //high flower white
+    0, //high flower white big
+    0, //high flower yellow
+    0, //high flower yellow big
+    0, //mushroom brown
+    0, //mushroom brown big
+    0, //mushroom red
+    0, //mushroom red big
+    0, //nettle
+    0, //nettle big
+    0, //nettle high
+    0, //shell
+    0, //shell small
+    0, //stone01
+    0, //stone01 grey
+    0, //stone02
+    0, //stone02 grey
+    0, //stone03
+    0, //stone03 grey
+    0, //stone04
+    0, //stone04 grey
+    0, //swamp calmus 01
+    0, //swamp calmus 02
+    0, //swamp calmus 03
+    0, //swampthing01
+    0, //swampthing02
+    0, //waterlily 1
+    0, //waterlily 2
+    0, //waterplant 1
+    0, //waterplant 2
+    0, //waterplant 3
+    0, //wreck
+    0  //wreck big
+};
+
+        private static readonly byte[][] doodads_adk = new byte[][]
+{
+    new byte[] { 0x74, 0xBE, 0x45, 0x7A }, //Chest
+    new byte[] { 0x34, 0xBF, 0xF9, 0x16 }, //OpenChest
+    new byte[] { 0x63, 0xA0, 0x5A, 0xC5 }, //Coal (endless)
+    new byte[] { 0x73, 0x9D, 0x5D, 0x8F }, //Iron (endless)
+    new byte[] { 0x63, 0xC0, 0xCA, 0x28 }, //Gold (endless)
+    new byte[] { 0xE3, 0xD2, 0x45, 0xB2 }, //Granite (endless)
+    new byte[] { 0x33, 0xD2, 0x28, 0x4E }, //Gemstones (few)
+    new byte[] { 0x03, 0x76, 0x96, 0xE8 }, //Gemstones (medium)
+    new byte[] { 0x53, 0x6C, 0xC5, 0x2E }, //Gemstones (much)
+    new byte[] { 0x03, 0x0D, 0xDF, 0x3A }, //Gemstones (endless)
+    new byte[] { 0xC3, 0xDC, 0x20, 0xF2 }, //Salt (few)
+    new byte[] { 0xC3, 0x3C, 0xD7, 0x77 }, //Salt (medium)
+    new byte[] { 0xF3, 0x58, 0x23, 0xBB }, //Salt (much)
+    new byte[] { 0xA3, 0x7E, 0x36, 0x32 }, //Salt (endless)
+    new byte[] { 0x01, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 01 moving
+    new byte[] { 0x02, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 01 static
+    new byte[] { 0x03, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 02 static
+    new byte[] { 0x04, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 03 static
+    new byte[] { 0x05, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 04 static
+    new byte[] { 0x06, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 05 static
+    new byte[] { 0x07, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 06 moving
+    new byte[] { 0x08, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 07 moving
+    new byte[] { 0x09, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 08 moving
+    new byte[] { 0x0A, 0xBB, 0x81, 0xA1 }, //--Snow Ice Floe 09 moving
+    new byte[] { 0x20, 0xBB, 0x81, 0xA1 }, //__Highland fern big
+    new byte[] { 0x21, 0xBB, 0x81, 0xA1 }, //__Highland fern miedium
+    new byte[] { 0x22, 0xBB, 0x81, 0xA1 }, //__Highland fern small
+    new byte[] { 0x30, 0xBB, 0x81, 0xA1 }, //__Highland nettle
+    new byte[] { 0x31, 0xBB, 0x81, 0xA1 }, //__Highland nettle big
+    new byte[] { 0x32, 0xBB, 0x81, 0xA1 }, //__Highland nettle high
+    new byte[] { 0x33, 0xBB, 0x81, 0xA1 }, //__Highland Edelweiss 1
+    new byte[] { 0x34, 0xBB, 0x81, 0xA1 }, //__Highland Edelweiss 2
+    new byte[] { 0x35, 0xBB, 0x81, 0xA1 }, //__Highland Edelweiss 3
+    new byte[] { 0x36, 0xBB, 0x81, 0xA1 }, //__Highland Snowdrop
+    new byte[] { 0x37, 0xBB, 0x81, 0xA1 }, //__Highland Crocus
+    new byte[] { 0x40, 0xBB, 0x81, 0xA1 }, //__Highland Foundling 1
+    new byte[] { 0x41, 0xBB, 0x81, 0xA1 }, //__Highland Foundling 2
+    new byte[] { 0x42, 0xBB, 0x81, 0xA1 }, //__Highland Foundling 3
+    new byte[] { 0x43, 0xBB, 0x81, 0xA1 }, //__Highland Underwater Foundling 1
+    new byte[] { 0x44, 0xBB, 0x81, 0xA1 }, //__Highland Underwater Foundling 2
+    new byte[] { 0x45, 0xBB, 0x81, 0xA1 }, //__Highland Underwater Foundling 3
+    new byte[] { 0x40, 0xBC, 0x81, 0xA1 }, //__Highland swamp calmus 01
+    new byte[] { 0x41, 0xBC, 0x81, 0xA1 }, //__Highland swamp calmus 02
+    new byte[] { 0x42, 0xBC, 0x81, 0xA1 }, //__Highland swamp calmus 03
+    new byte[] { 0x00, 0xBD, 0x81, 0xA1 }, //__Highland Fog 01
+    new byte[] { 0x01, 0xBD, 0x81, 0xA1 }, //__Highland Fog 02
+    new byte[] { 0x10, 0xBD, 0x81, 0xA1 }, //Male Duck
+    new byte[] { 0x11, 0xBD, 0x81, 0xA1 }  //Female Duck
+};
+
+        private static readonly int[] is_lifetime_adk = new int[]
+{
+    0, //Chest
+    0, //OpenChest
+    1, //Coal (endless)
+    1, //Iron (endless)
+    1, //Gold (endless)
+    1, //Granite (endless)
+    1, //Gemstones (few)
+    1, //Gemstones (medium)
+    1, //Gemstones (much)
+    1, //Gemstones (endless)
+    1, //Salt (few)
+    1, //Salt (medium)
+    1, //Salt (much)
+    1, //Salt (endless)
+    0, //--Snow Ice Floe 01 moving
+    0, //--Snow Ice Floe 01 static
+    0, //--Snow Ice Floe 02 static
+    0, //--Snow Ice Floe 03 static
+    0, //--Snow Ice Floe 04 static
+    0, //--Snow Ice Floe 05 static
+    0, //--Snow Ice Floe 06 moving
+    0, //--Snow Ice Floe 07 moving
+    0, //--Snow Ice Floe 08 moving
+    0, //--Snow Ice Floe 09 moving
+    0, //__Highland fern big
+    0, //__Highland fern miedium
+    0, //__Highland fern small
+    0, //__Highland nettle
+    0, //__Highland nettle big
+    0, //__Highland nettle high
+    0, //__Highland Edelweiss 1
+    0, //__Highland Edelweiss 2
+    0, //__Highland Edelweiss 3
+    0, //__Highland Snowdrop
+    0, //__Highland Crocus
+    0, //__Highland Foundling 1
+    0, //__Highland Foundling 2
+    0, //__Highland Foundling 3
+    0, //__Highland Underwater Foundling 1
+    0, //__Highland Underwater Foundling 2
+    0, //__Highland Underwater Foundling 3
+    0, //__Highland swamp calmus 01
+    0, //__Highland swamp calmus 02
+    0, //__Highland swamp calmus 03
+    0, //__Highland Fog 01
+    0, //__Highland Fog 02
+    0, //Male Duck
+    0  //Female Duck
+};
     }
 }
