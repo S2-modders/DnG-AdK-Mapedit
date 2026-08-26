@@ -975,7 +975,7 @@ namespace DnG_AdK_Mapedit
                 // 3. Maintain active selection if items remain
                 if (Swap_list_view.Items.Count > 0)
                 {
-                    // Select the item at the same position, or the last item if the end item was removed
+                    // Select the item at the same stream_offset, or the last item if the end item was removed
                     Swap_list_view.SelectedIndex = Math.Min(index, Swap_list_view.Items.Count - 1);
                 }
             }
@@ -2030,10 +2030,10 @@ namespace DnG_AdK_Mapedit
 
             // Read template directly into MemoryStream
             Assembly assembly = Assembly.GetExecutingAssembly();
-            MemoryStream adkStream = new MemoryStream();
+            MemoryStream adk_memory_stream = new MemoryStream();
             using (Stream stream = assembly.GetManifestResourceStream("DnG_AdK_Mapedit.MP_6P_snowflake.s2m"))
             {
-                stream.CopyTo(adkStream);
+                stream.CopyTo(adk_memory_stream);
             }
 
             int template_area = 110 * 110;
@@ -2043,40 +2043,40 @@ namespace DnG_AdK_Mapedit
             int current_adk_byte = 24;
 
             //Overwrite player count
-            adkStream.Position = current_adk_byte;
-            adkStream.Write(BitConverter.GetBytes(Player_count), 0, 4);
+            adk_memory_stream.Position = current_adk_byte;
+            adk_memory_stream.Write(BitConverter.GetBytes(Player_count), 0, 4);
             current_dng_byte += 4;
             current_adk_byte += 4;
 
             //Overwrite start positions (template map has 6 players)
             int startPosLength = 20 * Player_count;
-            ReplaceStreamBytes(adkStream, current_adk_byte, 120, DnG_map, current_dng_byte, startPosLength);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 120, DnG_map, current_dng_byte, startPosLength);
             current_adk_byte += startPosLength;
             current_dng_byte += startPosLength;
 
             //Owerwrite map name
             int mapNameLength = BitConverter.ToInt32(DnG_map, current_dng_byte);
             int mapNameTotalBytes = mapNameLength + 4;
-            ReplaceStreamBytes(adkStream, current_adk_byte, 19, DnG_map, current_dng_byte, mapNameTotalBytes);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 19, DnG_map, current_dng_byte, mapNameTotalBytes);
             current_adk_byte += mapNameTotalBytes;
             current_dng_byte += mapNameTotalBytes;
 
             //Overwrite map dimensions
-            adkStream.Position = current_adk_byte;
-            adkStream.Write(BitConverter.GetBytes(Map_size_x), 0, 4);
-            adkStream.Write(BitConverter.GetBytes(Map_size_y), 0, 4);
+            adk_memory_stream.Position = current_adk_byte;
+            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_x), 0, 4);
+            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_y), 0, 4);
             current_adk_byte += 8;
             current_dng_byte += 8;
 
             //Overwrite player types
-            adkStream.Position = current_adk_byte;
-            adkStream.Write(new byte[] { 0x02, 0x00, 0x00, 0x00 }, 0, 4);
+            adk_memory_stream.Position = current_adk_byte;
+            adk_memory_stream.Write(new byte[] { 0x02, 0x00, 0x00, 0x00 }, 0, 4);
             current_adk_byte += 4;
 
             for (int i = 2; i <= 8; i++)
             {
                 byte[] typeBytes = (i > Player_count) ? new byte[] { 0, 0, 0, 0 } : new byte[] { 1, 0, 0, 0 };
-                adkStream.Write(typeBytes, 0, 4);
+                adk_memory_stream.Write(typeBytes, 0, 4);
                 current_adk_byte += 4;
             }
             current_dng_byte += 32;
@@ -2088,15 +2088,15 @@ namespace DnG_AdK_Mapedit
                 current_adk_byte += 4;
 
                 //Write player colours
-                adkStream.Position = current_adk_byte;
+                adk_memory_stream.Position = current_adk_byte;
                 int color = (i <= Player_count) ? selectedColours[i - 1] : (i - 1);
-                adkStream.Write(BitConverter.GetBytes(color), 0, 4);
+                adk_memory_stream.Write(BitConverter.GetBytes(color), 0, 4);
                 current_adk_byte += 8; // Include skipped scripted map player teams
 
                 //Write default difficulty level (0 = weak, 1 = normal, 2 = strong)
-                adkStream.Position = current_adk_byte;
+                adk_memory_stream.Position = current_adk_byte;
                 byte[] difficulty = (i == 1 || i > Player_count) ? new byte[] { 0, 0, 0, 0 } : new byte[] { 2, 0, 0, 0 };
-                adkStream.Write(difficulty, 0, 4);
+                adk_memory_stream.Write(difficulty, 0, 4);
                 current_adk_byte += 4;
             }
             current_dng_byte += 128;
@@ -2105,7 +2105,7 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 28;
             current_adk_byte += 28;
             //Overwrite UUID
-            ReplaceStreamBytes(adkStream, current_adk_byte, 16, DnG_map, current_dng_byte, 16);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 16, DnG_map, current_dng_byte, 16);
             current_adk_byte += 16;
             current_dng_byte += 16;
 
@@ -2120,7 +2120,7 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 4;
 
             //Remove the template chests section
-            ReplaceStreamBytes(adkStream, current_adk_byte, 124, new byte[] { 0, 0, 0, 0 });
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 124, new byte[] { 0, 0, 0, 0 });
             current_adk_byte += 4;
 
             //Skip scripted map start resources and static 4 bytes before it
@@ -2155,23 +2155,23 @@ namespace DnG_AdK_Mapedit
             }
 
             //Overwrite sacrifices section
-            ReplaceStreamBytes(adkStream, current_adk_byte, 140, sacBytes);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 140, sacBytes);
             current_adk_byte += sacBytes.Length;
 
             //Skip to ID
             current_dng_byte += 12;
             current_adk_byte += 12;
             //Overwrite ID
-            ReplaceStreamBytes(adkStream, current_adk_byte, 8, DnG_map, current_dng_byte, 8);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, DnG_map, current_dng_byte, 8);
             current_adk_byte += 8;
             current_dng_byte += 8;
 
             //Skip to a map size section with unknown use
             current_adk_byte += 36;
             //Overwrite map dimensions
-            adkStream.Position = current_adk_byte;
-            adkStream.Write(BitConverter.GetBytes(Map_size_x), 0, 4);
-            adkStream.Write(BitConverter.GetBytes(Map_size_y), 0, 4);
+            adk_memory_stream.Position = current_adk_byte;
+            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_x), 0, 4);
+            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_y), 0, 4);
             current_adk_byte += 8;
 
             //Skip to the end of the heightmap header
@@ -2179,7 +2179,7 @@ namespace DnG_AdK_Mapedit
             current_dng_byte = FindSequenceOffset(DnG_map, HeightsHeader, current_dng_byte);
 
             //Overwrite heightmap dimensions
-            ReplaceStreamBytes(adkStream, current_adk_byte, 8, DnG_map, current_dng_byte, 8);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, DnG_map, current_dng_byte, 8);
             current_adk_byte += 8;
 
             int heightmap_size_x = BitConverter.ToInt32(DnG_map, current_dng_byte);
@@ -2188,14 +2188,14 @@ namespace DnG_AdK_Mapedit
 
             //Overwrite heightmap data
             int heightmap_data_length = heightmap_size_x * heightmap_size_y * 4;
-            ReplaceStreamBytes(adkStream, current_adk_byte, 777924, DnG_map, current_dng_byte, heightmap_data_length); //(441*441*4)
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 777924, DnG_map, current_dng_byte, heightmap_data_length); //(441*441*4)
             current_dng_byte += heightmap_data_length;
 
             int map_area = Map_size_x * Map_size_y;
             int[,] heightmap_logical = new int[Map_size_x, Map_size_y];
 
             // Create a heightmap that uses only logical coordinates
-            byte[] adkBuffer = adkStream.ToArray(); // Fetch stream array buffer once
+            byte[] adk_byte_array = adk_memory_stream.ToArray(); // Fetch stream array buffer once
 
             if (Harbours_list.Count > 0)
             {
@@ -2210,10 +2210,10 @@ namespace DnG_AdK_Mapedit
                     int targetIndex = x_detailed + (y_detailed * heightmap_size_x);
                     int byteOffset = current_adk_byte + (targetIndex * 4);
 
-                    if (byteOffset >= 0 && byteOffset + 4 <= adkBuffer.Length)
+                    if (byteOffset >= 0 && byteOffset + 4 <= adk_byte_array.Length)
                     {
                         //Swap x and y coordinates
-                        heightmap_logical[y_logical, x_logical] = BitConverter.ToInt32(adkBuffer, byteOffset);
+                        heightmap_logical[y_logical, x_logical] = BitConverter.ToInt32(adk_byte_array, byteOffset);
                     }
                 }
             }
@@ -2223,13 +2223,13 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map area
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(map_area));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(map_area));
             current_adk_byte += 4;
             current_dng_byte += 4;
             //Overwrite texture data
             int textures_beginning = current_adk_byte;
             int textures_data_length = map_area * 4;
-            ReplaceStreamBytes(adkStream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
             current_dng_byte += textures_data_length;
             current_adk_byte += textures_data_length;
 
@@ -2237,22 +2237,22 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map area
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(map_area));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(map_area));
             current_adk_byte += 4;
             current_dng_byte += 4;
             //Overwrite gridstate data (length should be the same as the texture data)
             int gridstates_beggining = current_adk_byte;
-            ReplaceStreamBytes(adkStream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
             current_dng_byte += textures_data_length;
 
-            adkBuffer = adkStream.ToArray();
+            adk_byte_array = adk_memory_stream.ToArray();
 
             // Strip invalid in AdK harbour flags (byte 2, 0x10) from initial gridstate
             int gridstateOffsetTemp = gridstates_beggining;
             for (int i = 0; i < map_area; i++)
             {
                 gridstateOffsetTemp += 1; // Byte 2
-                adkBuffer[gridstateOffsetTemp] &= 0xEF;
+                adk_byte_array[gridstateOffsetTemp] &= 0xEF;
                 gridstateOffsetTemp += 3; // Advance to next tile Byte 1
             }
 
@@ -2260,7 +2260,7 @@ namespace DnG_AdK_Mapedit
             foreach (var cave in Caves_list)
             {
                 int caveByteIndex = gridstates_beggining + (cave.pos_y * Map_size_x + cave.pos_x) * 4 + 1;
-                adkBuffer[caveByteIndex] |= 0x04;
+                adk_byte_array[caveByteIndex] |= 0x04;
             }
 
             // Texture Swapping Loop
@@ -2276,29 +2276,29 @@ namespace DnG_AdK_Mapedit
                     for (int j = 0; j < map_area; j++)
                     {
                         int textureOffset = textures_beginning + j * 4;
-                        if (BitConverter.ToInt32(adkBuffer, textureOffset) == texture_from)
+                        if (BitConverter.ToInt32(adk_byte_array, textureOffset) == texture_from)
                         {
-                            Buffer.BlockCopy(texture_to, 0, adkBuffer, textureOffset, 4);
+                            Buffer.BlockCopy(texture_to, 0, adk_byte_array, textureOffset, 4);
                             int gridstateOffset = gridstates_beggining + j * 4;
 
                             switch (texture_type_from)
                             {
-                                case 1: adkBuffer[gridstateOffset + 1] &= 0xFD; break; // Clear Building Spot
-                                case 2: adkBuffer[gridstateOffset + 0] &= 0xEF; break; // Clear Mining Spot
+                                case 1: adk_byte_array[gridstateOffset + 1] &= 0xFD; break; // Clear Building Spot
+                                case 2: adk_byte_array[gridstateOffset + 0] &= 0xEF; break; // Clear Mining Spot
                                 //Flag for sands does not exist
                                 case 4:
                                     //Prevent stones from turning to trees
-                                    if ((adkBuffer[gridstateOffset + 0] & 0x80) == 0)
-                                        adkBuffer[gridstateOffset + 0] &= 0xFE; // Clear Blocked
+                                    if ((adk_byte_array[gridstateOffset + 0] & 0x80) == 0)
+                                        adk_byte_array[gridstateOffset + 0] &= 0xFE; // Clear Blocked
                                     break;
                             }
 
                             switch (texture_type_to)
                             {
-                                case 1: adkBuffer[gridstateOffset + 1] |= 0x02; break; // Set Building Spot
-                                case 2: adkBuffer[gridstateOffset + 0] |= 0x10; break; // Set Mining Spot
+                                case 1: adk_byte_array[gridstateOffset + 1] |= 0x02; break; // Set Building Spot
+                                case 2: adk_byte_array[gridstateOffset + 0] |= 0x10; break; // Set Mining Spot
                                 //Flag for sands does not exist
-                                case 4: adkBuffer[gridstateOffset + 0] |= 0x01; break; // Set Blocked
+                                case 4: adk_byte_array[gridstateOffset + 0] |= 0x01; break; // Set Blocked
                             }
                         }
                     }
@@ -2316,26 +2316,26 @@ namespace DnG_AdK_Mapedit
 
                     //Replace a texture under the anchorage
                     int anchorTextureOffset = textures_beginning + (anchorIndex * 4);
-                    Buffer.BlockCopy(pavementTexture, 0, adkBuffer, anchorTextureOffset, 4);
+                    Buffer.BlockCopy(pavementTexture, 0, adk_byte_array, anchorTextureOffset, 4);
 
                     // 2. Validate coastal placement & apply Anchorage Flags to Gridstate Array
                     int anchorGridstateOffset = gridstates_beggining + (anchorIndex * 4);
 
-                    if ((adkBuffer[anchorGridstateOffset] & 0x08) == 0)
+                    if ((adk_byte_array[anchorGridstateOffset] & 0x08) == 0)
                     {
                         MessageBox.Show($"Harbour at index {i} has an anchor in an invalid location.", "Anchor is in invalid location", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return null;
                     }
 
-                    adkBuffer[anchorGridstateOffset + 0] = 0x08; // Coastal Terrain
-                    adkBuffer[anchorGridstateOffset + 1] = 0x00; // Base
-                    adkBuffer[anchorGridstateOffset + 2] = 0x02; // Anchor Point Flag
-                    adkBuffer[anchorGridstateOffset + 3] = 0x00; // Reserved
+                    adk_byte_array[anchorGridstateOffset + 0] = 0x08; // Coastal Terrain
+                    adk_byte_array[anchorGridstateOffset + 1] = 0x00; // Base
+                    adk_byte_array[anchorGridstateOffset + 2] = 0x02; // Anchor Point Flag
+                    adk_byte_array[anchorGridstateOffset + 3] = 0x00; // Reserved
                 }
             }
 
-            adkStream.Position = 0;
-            adkStream.Write(adkBuffer, 0, adkBuffer.Length);
+            adk_memory_stream.Position = 0;
+            adk_memory_stream.Write(adk_byte_array, 0, adk_byte_array.Length);
 
             current_adk_byte = gridstates_beggining + textures_data_length;
 
@@ -2343,12 +2343,12 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map dimensions
-            ReplaceStreamBytes(adkStream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
-            ReplaceStreamBytes(adkStream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
             current_adk_byte += 8; current_dng_byte += 8;
             //Overwrite resources array
             int resources_data_length = map_area * 8;
-            ReplaceStreamBytes(adkStream, current_adk_byte, template_area * 8, DnG_map, current_dng_byte, resources_data_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 8, DnG_map, current_dng_byte, resources_data_length);
             current_dng_byte += resources_data_length;
             current_adk_byte += resources_data_length;
 
@@ -2356,11 +2356,11 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map dimensions
-            ReplaceStreamBytes(adkStream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
-            ReplaceStreamBytes(adkStream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
             current_adk_byte += 8; current_dng_byte += 8;
             //Overwrite territory map data (length should be the same as the texture data)
-            ReplaceStreamBytes(adkStream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
             current_dng_byte += textures_data_length;
             current_adk_byte += textures_data_length;
 
@@ -2368,12 +2368,12 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map dimensions
-            ReplaceStreamBytes(adkStream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
-            ReplaceStreamBytes(adkStream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
             current_adk_byte += 8; current_dng_byte += 8;
             //Overwrite exploration map data
             int exploration_map_length = map_area * 32;
-            ReplaceStreamBytes(adkStream, current_adk_byte, template_area * 32, DnG_map, current_dng_byte, exploration_map_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 32, DnG_map, current_dng_byte, exploration_map_length);
             current_dng_byte += exploration_map_length;
             current_adk_byte += exploration_map_length;
 
@@ -2381,12 +2381,12 @@ namespace DnG_AdK_Mapedit
             byte[] depositsHeaderDng = new byte[] { 0x04, 0x00, 0x00, 0x00, 0xAE, 0xEB, 0x66, 0xEF, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
             byte[] depositsHeaderAdk = new byte[] { 0x06, 0x00, 0x00, 0x00, 0xAE, 0xEB, 0x66, 0xEF, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
 
-            adkBuffer = adkStream.ToArray();
+            adk_byte_array = adk_memory_stream.ToArray();
             int depositsOffsetDng = FindSequenceOffset(DnG_map, depositsHeaderDng, current_dng_byte);
-            int depositsOffsetAdk = FindSequenceOffset(adkBuffer, depositsHeaderAdk, current_adk_byte);
+            int depositsOffsetAdk = FindSequenceOffset(adk_byte_array, depositsHeaderAdk, current_adk_byte);
 
             int to_copy_length = depositsOffsetDng - current_dng_byte;
-            ReplaceStreamBytes(adkStream, current_adk_byte, depositsOffsetAdk - current_adk_byte, DnG_map, current_dng_byte, to_copy_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, depositsOffsetAdk - current_adk_byte, DnG_map, current_dng_byte, to_copy_length);
             current_dng_byte = depositsOffsetDng;
             current_adk_byte += to_copy_length;
 
@@ -2395,12 +2395,12 @@ namespace DnG_AdK_Mapedit
 
             int deposits_amount = BitConverter.ToInt32(DnG_map, current_dng_byte);
             current_dng_byte += 4;
-            int deposits_amount_adk = BitConverter.ToInt32(adkStream.ToArray(), current_adk_byte);
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(deposits_amount));
+            int deposits_amount_adk = BitConverter.ToInt32(adk_memory_stream.ToArray(), current_adk_byte);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(deposits_amount));
             current_adk_byte += 4;
             //Overwrite the deposits array data
             int depositsDataLength = deposits_amount * 108;
-            ReplaceStreamBytes(adkStream, current_adk_byte, deposits_amount_adk * 108, DnG_map, current_dng_byte, depositsDataLength);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, deposits_amount_adk * 108, DnG_map, current_dng_byte, depositsDataLength);
             current_dng_byte += depositsDataLength;
             current_adk_byte += depositsDataLength;
 
@@ -2409,27 +2409,27 @@ namespace DnG_AdK_Mapedit
             int animals_amount = BitConverter.ToInt32(DnG_map, current_dng_byte);
 
             byte[] doodadsHeader = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x3C, 0xCC, 0xBC, 0x8E, 0x0D, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
-            adkBuffer = adkStream.ToArray();
+            adk_byte_array = adk_memory_stream.ToArray();
             int doodadsOffsetDng = FindSequenceOffset(DnG_map, doodadsHeader, current_dng_byte);
-            int doodadsOffsetAdk = FindSequenceOffset(adkBuffer, doodadsHeader, current_adk_byte);
+            int doodadsOffsetAdk = FindSequenceOffset(adk_byte_array, doodadsHeader, current_adk_byte);
 
             to_copy_length = doodadsOffsetDng - current_dng_byte;
-            ReplaceStreamBytes(adkStream, current_adk_byte, doodadsOffsetAdk - current_adk_byte, DnG_map, current_dng_byte, to_copy_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, doodadsOffsetAdk - current_adk_byte, DnG_map, current_dng_byte, to_copy_length);
             current_dng_byte = doodadsOffsetDng;
             current_adk_byte += to_copy_length;
 
             //Overwrite doodads array length
-            int doodads_begginning = current_adk_byte;
+            int doodads_beginning = current_adk_byte;
             int doodads_amount = BitConverter.ToInt32(DnG_map, current_dng_byte);
             current_dng_byte += 4;
-            int doodads_amount_adk = BitConverter.ToInt32(adkStream.ToArray(), current_adk_byte);
+            int doodads_amount_adk = BitConverter.ToInt32(adk_memory_stream.ToArray(), current_adk_byte);
 
             doodads_amount += Harbours_list.Count(h => h.anchorage);
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(doodads_amount));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(doodads_amount));
             current_adk_byte += 4;
             //Overwrite doodads array data
             int doodads_data_length = doodads_amount * 56;
-            ReplaceStreamBytes(adkStream, current_adk_byte, doodads_amount_adk * 56, DnG_map, current_dng_byte, doodads_data_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, doodads_amount_adk * 56, DnG_map, current_dng_byte, doodads_data_length);
             current_dng_byte += doodads_data_length;
             current_adk_byte += doodads_data_length;
 
@@ -2451,16 +2451,16 @@ namespace DnG_AdK_Mapedit
                         w.Write(harbour.anchor_y * 4);
                     }
                     byte[] anchorBytes = anchorDoodad.ToArray();
-                    ReplaceStreamBytes(adkStream, current_adk_byte, 0, anchorBytes);
+                    ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, anchorBytes);
                     current_adk_byte += anchorBytes.Length;
                 }
             }
 
             //Overwrite lifetime doodads array length (template map has none)
-            int lifetime_doodads_beggining = current_adk_byte;
+            int lifetime_doodads_beginning = current_adk_byte;
             int lifetime_doodads_amount = BitConverter.ToInt32(DnG_map, current_dng_byte);
             current_dng_byte += 4;
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(lifetime_doodads_amount));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(lifetime_doodads_amount));
             current_adk_byte += 4;
             //Write lifetime doodads array data
             int lifetime_doodads_data_length = lifetime_doodads_amount * 60;
@@ -2474,8 +2474,8 @@ namespace DnG_AdK_Mapedit
                 Buffer.BlockCopy(maxValueBytes, 0, lifetime_doodads_bytes, (i * 60) + 56, 4);
             }
 
-            // removeCount = 0 (template map has no existing lifetime doodad bytes to remove)
-            ReplaceStreamBytes(adkStream, current_adk_byte, 0, lifetime_doodads_bytes, 0, lifetime_doodads_data_length);
+            // remove_amount = 0 (template map has no existing lifetime doodad bytes to remove)
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, lifetime_doodads_bytes, 0, lifetime_doodads_data_length);
 
             current_dng_byte += lifetime_doodads_data_length;
             current_adk_byte += lifetime_doodads_data_length;
@@ -2484,12 +2484,12 @@ namespace DnG_AdK_Mapedit
             int blocking_doodads_beginning = current_adk_byte;
             int blocking_doodads_amount = BitConverter.ToInt32(DnG_map, current_dng_byte);
             current_dng_byte += 4;
-            int blocking_doodads_length_adk = BitConverter.ToInt32(adkStream.ToArray(), current_adk_byte);
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(blocking_doodads_amount));
+            int blocking_doodads_length_adk = BitConverter.ToInt32(adk_memory_stream.ToArray(), current_adk_byte);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(blocking_doodads_amount));
             current_adk_byte += 4;
             //Overwrite blocking doodads array data
             int blocking_doodads_data_length = blocking_doodads_amount * 56;
-            ReplaceStreamBytes(adkStream, current_adk_byte, blocking_doodads_length_adk * 56, DnG_map, current_dng_byte, blocking_doodads_data_length);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, blocking_doodads_length_adk * 56, DnG_map, current_dng_byte, blocking_doodads_data_length);
             current_dng_byte += blocking_doodads_data_length;
             current_adk_byte += blocking_doodads_data_length;
 
@@ -2501,11 +2501,11 @@ namespace DnG_AdK_Mapedit
 
             int ambients_amount = BitConverter.ToInt32(DnG_map, current_dng_byte);
             current_dng_byte += 4;
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(ambients_amount));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(ambients_amount));
             current_adk_byte += 4;
             //Copy the ambients array data to the AdK map
             int ambientsDataLength = ambients_amount * 24;
-            ReplaceStreamBytes(adkStream, current_adk_byte, 0, DnG_map, current_dng_byte, ambientsDataLength);
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, DnG_map, current_dng_byte, ambientsDataLength);
             //End of the DnG map, no need to update current_dng_byte anymore
             current_adk_byte += ambientsDataLength;
 
@@ -2514,7 +2514,7 @@ namespace DnG_AdK_Mapedit
             //Generate buoy connections and harbour IDs
             GenerateBuoyConnections();
             //Write buoy connections amount (template map has none)
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(Buoy_connections.Count));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(Buoy_connections.Count));
             current_adk_byte += 4;
 
             //Write buoy connections
@@ -2545,7 +2545,7 @@ namespace DnG_AdK_Mapedit
                     }
 
                     byte[] bBytes = buoyStream.ToArray();
-                    ReplaceStreamBytes(adkStream, current_adk_byte, 0, bBytes);
+                    ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, bBytes);
                     current_adk_byte += bBytes.Length;
 
                     //Compute the path connecting the buoys
@@ -2553,7 +2553,7 @@ namespace DnG_AdK_Mapedit
 
                     if (buoyPath != null)
                     {
-                        ReplaceStreamBytes(adkStream, current_adk_byte, 0, BitConverter.GetBytes(buoyPath.Length));
+                        ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, BitConverter.GetBytes(buoyPath.Length));
                         current_adk_byte += 4;
 
                         foreach (int[] step in buoyPath)
@@ -2569,7 +2569,7 @@ namespace DnG_AdK_Mapedit
                                 w.Write(step[1]);
                             }
                             byte[] sBytes = stepMs.ToArray();
-                            ReplaceStreamBytes(adkStream, current_adk_byte, 0, sBytes);
+                            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, sBytes);
                             current_adk_byte += sBytes.Length;
                             globalReservedPaths.Add(step);
                         }
@@ -2586,7 +2586,7 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 16;
 
             //Write harbours amount (template map has none)
-            ReplaceStreamBytes(adkStream, current_adk_byte, 4, BitConverter.GetBytes(Harbours_list.Count));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(Harbours_list.Count));
             current_adk_byte += 4;
 
             //Write harbour data, 404 bytes per harbour
@@ -2608,7 +2608,7 @@ namespace DnG_AdK_Mapedit
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    //Write harbour flag position
+                    //Write harbour flag stream_offset
                     w.Write(harbour.pos_x);
                     w.Write(harbour.pos_y);
 
@@ -2617,14 +2617,14 @@ namespace DnG_AdK_Mapedit
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x7F, 0x63, 0xCD, 0xE0, 0x13, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    //Write buoy 1 docking position 1
+                    //Write buoy 1 docking stream_offset 1
                     var dOffset = buoy1_docking_positions[harbour_rotation, 0];
                     w.Write(harbour.pos_x + dOffset.offsetX);
                     w.Write(harbour.pos_y + dOffset.offsetY);
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    //Write buoy 1 docking position 2
+                    //Write buoy 1 docking stream_offset 2
                     dOffset = buoy1_docking_positions[harbour_rotation, 1];
                     w.Write(harbour.pos_x + dOffset.offsetX);
                     w.Write(harbour.pos_y + dOffset.offsetY);
@@ -2642,21 +2642,21 @@ namespace DnG_AdK_Mapedit
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    //Write buoy 1 world position
+                    //Write buoy 1 world stream_offset
                     var buoyCoords = GetBuoyWorldCoordinates(harbour, 0);
                     w.Write(buoyCoords.x);
                     w.Write(buoyCoords.y);
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x7F, 0x63, 0xCD, 0xE0, 0x13, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    //Write buoy 2 docking position 1
+                    //Write buoy 2 docking stream_offset 1
                     dOffset = buoy2_docking_positions[harbour_rotation, 0];
                     w.Write(harbour.pos_x + dOffset.offsetX);
                     w.Write(harbour.pos_y + dOffset.offsetY);
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    //Write buoy 2 docking position 2
+                    //Write buoy 2 docking stream_offset 2
                     dOffset = buoy2_docking_positions[harbour_rotation, 1];
                     w.Write(harbour.pos_x + dOffset.offsetX);
                     w.Write(harbour.pos_y + dOffset.offsetY);
@@ -2674,7 +2674,7 @@ namespace DnG_AdK_Mapedit
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
-                    // Write buoy 2 world position
+                    // Write buoy 2 world stream_offset
                     var buoy2Coords = GetBuoyWorldCoordinates(harbour, 1);
                     w.Write(buoy2Coords.x);
                     w.Write(buoy2Coords.y);
@@ -2683,7 +2683,7 @@ namespace DnG_AdK_Mapedit
                 }
 
                 byte[] harbourBytes = harbourStream.ToArray();
-                ReplaceStreamBytes(adkStream, current_adk_byte, 0, harbourBytes);
+                ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, harbourBytes);
                 current_adk_byte += harbourBytes.Length;
             }
 
@@ -2691,14 +2691,14 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 16;
 
             // Wipe template caves data (end of the file)
-            adkStream.SetLength(current_adk_byte);
-            adkStream.Position = current_adk_byte;
+            adk_memory_stream.SetLength(current_adk_byte);
+            adk_memory_stream.Position = current_adk_byte;
 
             int caves_beginning = current_adk_byte;
             int caves_amount = Caves_list.Count;
 
-            // Pass leaveOpen: true so disposing the writer won't close adkStream
-            using (BinaryWriter writer = new BinaryWriter(adkStream, System.Text.Encoding.UTF8, leaveOpen: true))
+            // Pass leaveOpen: true so disposing the writer won't close adk_memory_stream
+            using (BinaryWriter writer = new BinaryWriter(adk_memory_stream, System.Text.Encoding.UTF8, leaveOpen: true))
             {
                 // Write the caves data to the AdK map
                 writer.Write(caves_amount);
@@ -2722,22 +2722,23 @@ namespace DnG_AdK_Mapedit
             bool[,] logical_grid_blocking = new bool[Map_size_x, Map_size_y];
             bool[,] logical_grid_animals = new bool[Map_size_x, Map_size_y];
             bool[,] logical_grid_ambients = new bool[Map_size_x, Map_size_y];
+
+            adk_byte_array = adk_memory_stream.ToArray();
             if (Swap_list.Count > 0)
             {
-                byte[] temp_map = adkStream.ToArray();
                 //Deposits
                 for (int i = 0; i < deposits_amount; i++)
                 {
-                    int pos_x = BitConverter.ToInt32(temp_map, deposits_beginning + (i * 108) + 48);
-                    int pos_y = BitConverter.ToInt32(temp_map, deposits_beginning + (i * 108) + 52);
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, deposits_beginning + (i * 108) + 48);
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, deposits_beginning + (i * 108) + 52);
 
                     logical_grid_blocking[pos_x, pos_y] = true;
                 }
                 //Animals
                 for (int i = 0; i < animals_amount; i++)
                 {
-                    int pos_x = BitConverter.ToInt32(temp_map, animals_beginning + (i * 244) + 52);
-                    int pos_y = BitConverter.ToInt32(temp_map, animals_beginning + (i * 244) + 56);
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, animals_beginning + (i * 244) + 52);
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, animals_beginning + (i * 244) + 56);
 
                     logical_grid_animals[pos_x, pos_y] = true;
                 }
@@ -2745,16 +2746,16 @@ namespace DnG_AdK_Mapedit
                 for (int i = 0; i < blocking_doodads_amount; i++)
                 {
                     //Removing the decimal component is an intended behaviour
-                    int pos_x = BitConverter.ToInt32(temp_map, blocking_doodads_beginning + (i * 56) + 48) / 4;
-                    int pos_y = BitConverter.ToInt32(temp_map, blocking_doodads_beginning + (i * 56) + 52) / 4;
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, blocking_doodads_beginning + (i * 56) + 48) / 4;
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, blocking_doodads_beginning + (i * 56) + 52) / 4;
 
                     logical_grid_blocking[pos_x, pos_y] = true;
                 }
                 //Ambients
                 for (int i = 0; i < ambients_amount; i++)
                 {
-                    int pos_x = BitConverter.ToInt32(temp_map, ambients_beginning + (i * 24) + 16);
-                    int pos_y = BitConverter.ToInt32(temp_map, ambients_beginning + (i * 24) + 20);
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, ambients_beginning + (i * 24) + 16);
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, ambients_beginning + (i * 24) + 20);
 
                     logical_grid_ambients[pos_x, pos_y] = true;
                 }
@@ -2792,37 +2793,76 @@ namespace DnG_AdK_Mapedit
                     }
                 }
             }
-            
+
+            //Update logical grid object amounts
+            if (Swap_list.Count > 0)
+            {
+
+            }
+
             //Swap standard doodads
             //foreach(var swap in Swap_list.Count)
 
-            //Update logical grid amounts
+            //Update doodads grid object amounts
+            if (Swap_list.Count > 0)
+            {
+                //Standard
+                ReplaceStreamBytes(adk_memory_stream, doodads_beginning, 4, BitConverter.GetBytes(doodads_amount), 0, 4);
+                //Lifetime
+                ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
+            }
 
             //Remove water sign lifetime doodad with no texture
+            if (lifetime_doodads_amount > 0)
+            {
+                int water_sign = BitConverter.ToInt32(new byte[] { 0x43, 0xA3, 0x1A, 0x12 }, 0);
+                byte[] empty_buffer = Array.Empty<byte>();
 
-            return adkStream.ToArray();
+                // Iterate backward to prevent stream index shifts from affecting remaining checks
+                for (int i = lifetime_doodads_amount - 1; i >= 0; i--)
+                {
+                    //60 bytes per lifetime doodad + lifetime doodads amount
+                    int target_byte_offset = lifetime_doodads_beginning + 4 + (i * 60);
+
+                    // Read directly from the current stream position
+                    adk_memory_stream.Position = target_byte_offset;
+                    byte[] type_buffer = new byte[4];
+                    adk_memory_stream.Read(type_buffer, 0, 4);
+
+                    if (water_sign == BitConverter.ToInt32(type_buffer, 0))
+                    {
+                        ReplaceStreamBytes(adk_memory_stream, target_byte_offset, 60, empty_buffer, 0, 0);
+                        lifetime_doodads_amount--;
+                    }
+                }
+
+                //Update lifetime doodads amount
+                ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
+            }
+
+            return adk_memory_stream.ToArray();
         }
 
         // MemoryStream Byte Replacement Helper Method
-        private static void ReplaceStreamBytes(MemoryStream stream, int position, int removeCount, byte[] insertBytes, int srcOffset = 0, int insertCount = -1)
+        private static void ReplaceStreamBytes(MemoryStream stream, int stream_offset, int remove_amount, byte[] insert_bytes, int insert_bytes_offset = 0, int insert_amount = -1)
         {
-            if (insertCount < 0) insertCount = insertBytes.Length;
+            if (insert_amount < 0) insert_amount = insert_bytes.Length;
 
-            if (removeCount == insertCount)
+            if (remove_amount == insert_amount)
             {
                 // Direct overwrite - Fast O(1)
-                stream.Position = position;
-                stream.Write(insertBytes, srcOffset, insertCount);
+                stream.Position = stream_offset;
+                stream.Write(insert_bytes, insert_bytes_offset, insert_amount);
             }
             else
             {
                 // Resizing Stream - Slice existing content and splice new data
                 byte[] buffer = stream.ToArray();
                 stream.SetLength(0);
-                stream.Write(buffer, 0, position);
-                stream.Write(insertBytes, srcOffset, insertCount);
+                stream.Write(buffer, 0, stream_offset);
+                stream.Write(insert_bytes, insert_bytes_offset, insert_amount);
 
-                int remainingOffset = position + removeCount;
+                int remainingOffset = stream_offset + remove_amount;
                 if (remainingOffset < buffer.Length)
                 {
                     stream.Write(buffer, remainingOffset, buffer.Length - remainingOffset);
