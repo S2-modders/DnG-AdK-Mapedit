@@ -27,8 +27,8 @@ namespace DnG_AdK_Mapedit
 
         private int Player_count;
 
-        private int Map_size_x;
-        private int Map_size_y;
+        private int map_size_x;
+        private int map_size_y;
 
         private static readonly byte[] HeightsHeader = { 0x01, 0x00, 0x00, 0x00, 0x71, 0x28, 0x0B, 0x82, 0x0C, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x9C, 0xFF, 0xFF, 0xFF };
         private static readonly byte[] TexturesHeader = { 0x00, 0x00, 0x00, 0x00, 0xB4, 0x88, 0xC8, 0x75, 0x0A, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00 };
@@ -484,20 +484,20 @@ namespace DnG_AdK_Mapedit
             Map_name_button.Text = Map_name.ToString();
             current_byte += Map_name_length;
             //Read map size
-            Map_size_x = (int)BitConverter.ToUInt32(DnG_map, current_byte);
+            map_size_x = (int)BitConverter.ToUInt32(DnG_map, current_byte);
             current_byte += 4;
-            Map_size_y = (int)BitConverter.ToUInt32(DnG_map, current_byte);
+            map_size_y = (int)BitConverter.ToUInt32(DnG_map, current_byte);
             current_byte += 4;
-            Map_info_size.Text = "Map size: " + Map_size_x.ToString() + "x" + Map_size_y.ToString();
+            Map_info_size.Text = "Map size: " + map_size_x.ToString() + "x" + map_size_y.ToString();
 
             //Update maximum positions
-            Harbour_position_X_input.Maximum = Map_size_x;
-            Anchor_position_X_input.Maximum = Map_size_x;
-            Cave_position_X_input.Maximum = Map_size_x;
+            Harbour_position_X_input.Maximum = map_size_x;
+            Anchor_position_X_input.Maximum = map_size_x;
+            Cave_position_X_input.Maximum = map_size_x;
 
-            Harbour_position_Y_input.Maximum = Map_size_y;
-            Anchor_position_Y_input.Maximum = Map_size_y;
-            Cave_position_Y_input.Maximum = Map_size_y;
+            Harbour_position_Y_input.Maximum = map_size_y;
+            Anchor_position_Y_input.Maximum = map_size_y;
+            Cave_position_Y_input.Maximum = map_size_y;
 
             UpdateResources(current_byte, DnG_map);
         }
@@ -529,7 +529,7 @@ namespace DnG_AdK_Mapedit
                 return;
             }
 
-            //Skip array length (Map_size_x * Map_size_y)
+            //Skip array length (map_size_x * map_size_y)
             int textures_beginning = current_byte + 4;
 
             //Finding the resource array header in the map file
@@ -543,7 +543,7 @@ namespace DnG_AdK_Mapedit
 
             //Skip map size
             current_byte += 8;
-            int Resource_array_length = Map_size_x * Map_size_y;
+            int Resource_array_length = map_size_x * map_size_y;
 
             int Coal_count = 0, Iron_count = 0, Salt_count = 0;
             int Gold_count = 0, Gemstones_count = 0, Stone_count = 0;
@@ -571,7 +571,7 @@ namespace DnG_AdK_Mapedit
                     //Map editor fails to remove invalid resources that are under the water.
                     //That causes the resource count to be different.
                     //Remove invalid resources that are under the water
-                    else if (!IsOnLand(DnG_map, Heights_array_beginning, j, Map_size_x))
+                    else if (!IsOnLand(DnG_map, Heights_array_beginning, j, map_size_x))
                     {
                         // Overwrite the resource amount (4 bytes) and type (4 bytes) for the current entry.
                         Array.Copy(Empty_hex_extended, 0, DnG_map, current_byte - 4, Empty_hex_extended.Length);
@@ -2063,8 +2063,8 @@ namespace DnG_AdK_Mapedit
 
             //Overwrite map dimensions
             adk_memory_stream.Position = current_adk_byte;
-            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_x), 0, 4);
-            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_y), 0, 4);
+            adk_memory_stream.Write(BitConverter.GetBytes(map_size_x), 0, 4);
+            adk_memory_stream.Write(BitConverter.GetBytes(map_size_y), 0, 4);
             current_adk_byte += 8;
             current_dng_byte += 8;
 
@@ -2170,8 +2170,8 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 36;
             //Overwrite map dimensions
             adk_memory_stream.Position = current_adk_byte;
-            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_x), 0, 4);
-            adk_memory_stream.Write(BitConverter.GetBytes(Map_size_y), 0, 4);
+            adk_memory_stream.Write(BitConverter.GetBytes(map_size_x), 0, 4);
+            adk_memory_stream.Write(BitConverter.GetBytes(map_size_y), 0, 4);
             current_adk_byte += 8;
 
             //Skip to the end of the heightmap header
@@ -2191,8 +2191,8 @@ namespace DnG_AdK_Mapedit
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 777924, DnG_map, current_dng_byte, heightmap_data_length); //(441*441*4)
             current_dng_byte += heightmap_data_length;
 
-            int map_area = Map_size_x * Map_size_y;
-            int[,] heightmap_logical = new int[Map_size_x, Map_size_y];
+            int map_area = map_size_x * map_size_y;
+            int[,] heightmap_logical = new int[map_size_x, map_size_y];
 
             // Create a heightmap that uses only logical coordinates
             byte[] adk_byte_array = adk_memory_stream.ToArray(); // Fetch stream array buffer once
@@ -2202,8 +2202,8 @@ namespace DnG_AdK_Mapedit
                 for (int i = 0; i < map_area; i++)
                 {
                     // Column-first indexing (index increases down each column y, then moves to the next column x)
-                    int x_logical = i / Map_size_y;
-                    int y_logical = i % Map_size_y;
+                    int x_logical = i / map_size_y;
+                    int y_logical = i % map_size_y;
                     int x_detailed = (y_logical % 2 == 0) ? (x_logical * 4) : ((x_logical * 4) + 2);
                     int y_detailed = y_logical * 4;
 
@@ -2241,14 +2241,14 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 4;
             current_dng_byte += 4;
             //Overwrite gridstate data (length should be the same as the texture data)
-            int gridstates_beggining = current_adk_byte;
+            int gridstates_beginning = current_adk_byte;
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
             current_dng_byte += textures_data_length;
 
             adk_byte_array = adk_memory_stream.ToArray();
 
             // Strip invalid in AdK harbour flags (byte 2, 0x10) from initial gridstate
-            int gridstateOffsetTemp = gridstates_beggining;
+            int gridstateOffsetTemp = gridstates_beginning;
             for (int i = 0; i < map_area; i++)
             {
                 gridstateOffsetTemp += 1; // Byte 2
@@ -2259,7 +2259,7 @@ namespace DnG_AdK_Mapedit
             // Block hexagons occupied by caves (byte 2, 0x04)
             foreach (var cave in Caves_list)
             {
-                int caveByteIndex = gridstates_beggining + (cave.pos_y * Map_size_x + cave.pos_x) * 4 + 1;
+                int caveByteIndex = gridstates_beginning + (cave.pos_y * map_size_x + cave.pos_x) * 4 + 1;
                 adk_byte_array[caveByteIndex] |= 0x04;
             }
 
@@ -2279,7 +2279,7 @@ namespace DnG_AdK_Mapedit
                         if (BitConverter.ToInt32(adk_byte_array, textureOffset) == texture_from)
                         {
                             Buffer.BlockCopy(texture_to, 0, adk_byte_array, textureOffset, 4);
-                            int gridstateOffset = gridstates_beggining + j * 4;
+                            int gridstateOffset = gridstates_beginning + j * 4;
 
                             switch (texture_type_from)
                             {
@@ -2312,14 +2312,14 @@ namespace DnG_AdK_Mapedit
             {
                 if (Harbours_list[i].anchorage)
                 {
-                    int anchorIndex = Harbours_list[i].anchor_y * Map_size_x + Harbours_list[i].anchor_x;
+                    int anchorIndex = Harbours_list[i].anchor_y * map_size_x + Harbours_list[i].anchor_x;
 
                     //Replace a texture under the anchorage
                     int anchorTextureOffset = textures_beginning + (anchorIndex * 4);
                     Buffer.BlockCopy(pavementTexture, 0, adk_byte_array, anchorTextureOffset, 4);
 
                     // 2. Validate coastal placement & apply Anchorage Flags to Gridstate Array
-                    int anchorGridstateOffset = gridstates_beggining + (anchorIndex * 4);
+                    int anchorGridstateOffset = gridstates_beginning + (anchorIndex * 4);
 
                     if ((adk_byte_array[anchorGridstateOffset] & 0x08) == 0)
                     {
@@ -2337,14 +2337,14 @@ namespace DnG_AdK_Mapedit
             adk_memory_stream.Position = 0;
             adk_memory_stream.Write(adk_byte_array, 0, adk_byte_array.Length);
 
-            current_adk_byte = gridstates_beggining + textures_data_length;
+            current_adk_byte = gridstates_beginning + textures_data_length;
 
             //Skip resource map header
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map dimensions
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(map_size_x));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(map_size_y));
             current_adk_byte += 8; current_dng_byte += 8;
             //Overwrite resources array
             int resources_data_length = map_area * 8;
@@ -2356,8 +2356,8 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map dimensions
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(map_size_x));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(map_size_y));
             current_adk_byte += 8; current_dng_byte += 8;
             //Overwrite territory map data (length should be the same as the texture data)
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_area * 4, DnG_map, current_dng_byte, textures_data_length);
@@ -2368,8 +2368,8 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 16;
             current_adk_byte += 16;
             //Overwrite map dimensions
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(Map_size_x));
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(Map_size_y));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, BitConverter.GetBytes(map_size_x));
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 4, 0, BitConverter.GetBytes(map_size_y));
             current_adk_byte += 8; current_dng_byte += 8;
             //Overwrite exploration map data
             int exploration_map_length = map_area * 32;
@@ -2719,9 +2719,9 @@ namespace DnG_AdK_Mapedit
             }
 
             //Create arrays storing a map of occupied hexagons
-            bool[,] logical_grid_blocking = new bool[Map_size_x, Map_size_y];
-            bool[,] logical_grid_animals = new bool[Map_size_x, Map_size_y];
-            bool[,] logical_grid_ambients = new bool[Map_size_x, Map_size_y];
+            bool[,] logical_grid_blocking = new bool[map_size_x, map_size_y];
+            bool[,] logical_grid_animals = new bool[map_size_x, map_size_y];
+            bool[,] logical_grid_ambients = new bool[map_size_x, map_size_y];
 
             adk_byte_array = adk_memory_stream.ToArray();
             if (Swap_list.Count > 0)
@@ -2767,34 +2767,81 @@ namespace DnG_AdK_Mapedit
             }
 
             //Logical grid swapping
-            /*
-            foreach(var swap in Swap_list)
+            foreach (var swap in Swap_list)
             {
                 if (swap.tab == 2)
                 {
                     int source_type = DnG_logical_grid_types[swap.from];
                     int target_type = AdK_logical_grid_types[swap.to];
 
-                    if (source_type == 1 || source_type == 2)
+                    int source = BitConverter.ToInt32(DnG_logical_grid[swap.from], 0);
+                    byte[] target = AdK_logical_grid[swap.to];
+
+                    if (source_type == target_type || (source_type <= 1 && target_type <= 1))
                     {
-                        if (target_type == 1 || target_type == 2)
+                        //Deposits
+                        if (source_type <= 1 && target_type <= 1)
                         {
-                            for (int i = 0; i < doodads_amount; i++)
+                            for (int i = 0; i < deposits_amount; i++)
                             {
+                                int deposit_start = deposits_beginning + (i * 108);
+                                int type_offset = deposit_start + 4;
 
-                            }
-                        }
-                        else
-                        {
-                            for (int i = 0; i < doodads_amount; i++)
-                            {
+                                // Read type buffer directly from stream
+                                adk_memory_stream.Position = type_offset;
+                                byte[] type_buffer = new byte[4];
+                                adk_memory_stream.Read(type_buffer, 0, 4);
 
+                                if (source == BitConverter.ToInt32(type_buffer, 0))
+                                {
+                                    ReplaceStreamBytes(adk_memory_stream, type_offset, 4, target, 0, 4);
+
+                                    if (source_type != target_type)
+                                    {
+                                        // Read coordinates directly from stream at relative offsets
+                                        adk_memory_stream.Position = deposit_start + 52;
+                                        byte[] coord_buffer = new byte[8];
+                                        adk_memory_stream.Read(coord_buffer, 0, 8);
+
+                                        int pos_x = BitConverter.ToInt32(coord_buffer, 0);
+                                        int pos_y = BitConverter.ToInt32(coord_buffer, 4);
+
+                                        // Calculate grid state offset
+                                        int gridstates_index = pos_x + (pos_y * map_size_x);
+                                        int target_byte = gridstates_beginning + (gridstates_index * 4);
+
+                                        // Read existing state byte
+                                        adk_memory_stream.Position = target_byte;
+                                        int currentFlag = adk_memory_stream.ReadByte();
+
+                                        if (currentFlag != -1)
+                                        {
+                                            byte flagByte = (byte)currentFlag;
+
+                                            if (target_type == 1)
+                                            {
+                                                flagByte |= 0x01;  // Set is_blocked flag
+                                            }
+                                            else
+                                            {
+                                                flagByte &= 0xFE;  // Clear is_blocked flag
+                                            }
+
+                                            adk_memory_stream.Position = target_byte;
+                                            adk_memory_stream.WriteByte(flagByte);
+                                        }
+                                    }
+                                }
                             }
+                            continue;
                         }
+                    }
+                    else
+                    {
+
                     }
                 }
             }
-            */
 
             //Update logical grid object amounts
             if (Swap_list.Count > 0)
@@ -3768,6 +3815,127 @@ namespace DnG_AdK_Mapedit
     4, //swamp
     4, //water waves
 };
+
+        private static readonly byte[][] DnG_logical_grid = new byte[][]
+{
+    new byte[] { 0xD0, 0x7F, 0xAB, 0x1D }, // 0: !!!MED StoneResourceA01
+    new byte[] { 0xD1, 0x7F, 0xAB, 0x1D }, // 1: !!!MED StoneResourceA02
+    new byte[] { 0xD2, 0x7F, 0xAB, 0x1D }, // 2: !!!MED StoneResourceA03
+    new byte[] { 0xD3, 0x7F, 0xAB, 0x1D }, // 3: !!!MED StoneResourceA04
+    new byte[] { 0xD4, 0x7F, 0xAB, 0x1D }, // 4: !!!MED StoneResourceA05
+    new byte[] { 0xD5, 0x7F, 0xAB, 0x1D }, // 5: !!!MED StoneResourceA06
+    new byte[] { 0x78, 0x2E, 0xCF, 0xE8 }, // 6: AfricanA
+    new byte[] { 0x7C, 0x2E, 0xCF, 0xE8 }, // 7: AsianA
+    new byte[] { 0x73, 0xCE, 0x99, 0x7E }, // 8: BirchA
+    new byte[] { 0xB3, 0x87, 0x32, 0x06 }, // 9: BirchB
+    new byte[] { 0x83, 0xCB, 0x9C, 0x48 }, // 10: BirchC
+    new byte[] { 0xB3, 0x47, 0x9F, 0x11 }, // 11: BroadLeafA
+    new byte[] { 0xD3, 0x21, 0xCF, 0xE6 }, // 12: BroadLeafB
+    new byte[] { 0xC3, 0x44, 0xEF, 0xAD }, // 13: BroadLeafC
+    new byte[] { 0x76, 0x2E, 0xCF, 0xE8 }, // 14: CypressA
+    new byte[] { 0x9E, 0x4C, 0xED, 0xDF }, // 15: Field01
+    new byte[] { 0x73, 0x0E, 0x2D, 0x73 }, // 16: FirA
+    new byte[] { 0x73, 0x0E, 0xCF, 0xE6 }, // 17: FirB
+    new byte[] { 0x79, 0x2E, 0xCF, 0xE8 }, // 18: LavaTreeA
+    new byte[] { 0x7A, 0x2E, 0xCF, 0xE8 }, // 19: LavaTreeB
+    new byte[] { 0x7B, 0x2E, 0xCF, 0xE8 }, // 20: LavaTreeC
+    new byte[] { 0x77, 0x2E, 0xCF, 0xE8 }, // 21: OliveA
+    new byte[] { 0x74, 0x1E, 0xCF, 0xE7 }, // 22: PalmA
+    new byte[] { 0x75, 0x2E, 0xCF, 0xE8 }, // 23: PalmB
+    new byte[] { 0x0E, 0xD6, 0x1B, 0x9F }, // 24: StoneResourceA01
+    new byte[] { 0x5E, 0x11, 0xB1, 0x5B }, // 25: StoneResourceA02
+    new byte[] { 0xEE, 0x5B, 0xEF, 0x21 }, // 26: StoneResourceA03
+    new byte[] { 0x8E, 0xCD, 0x46, 0x19 }, // 27: StoneResourceA04
+    new byte[] { 0x9E, 0x6A, 0x93, 0x5D }, // 28: StoneResourceA05
+    new byte[] { 0xFE, 0xA2, 0x2B, 0xE4 }, // 29: StoneResourceA06
+    new byte[] { 0xA0, 0xC0, 0x91, 0xFA }, // 30: !!MED rock 1
+    new byte[] { 0xA1, 0xC0, 0x91, 0xFA }, // 31: !!MED rock 2
+    new byte[] { 0xA2, 0xC0, 0x91, 0xFA }, // 32: !!MED rock 3
+    new byte[] { 0xA3, 0xC0, 0x91, 0xFA }, // 33: !!MED rock 4
+    new byte[] { 0xA0, 0xEE, 0xFF, 0xCA }, // 34: ((LAVA rock 0
+    new byte[] { 0xA1, 0xEE, 0xFF, 0xCA }, // 35: ((LAVA rock 1
+    new byte[] { 0xA2, 0xEE, 0xFF, 0xCA }, // 36: ((LAVA rock 2
+    new byte[] { 0xE6, 0xBE, 0xDE, 0xFA }, // 37: Gate01
+    new byte[] { 0xA0, 0xE0, 0xAF, 0x6F }, // 38: rock 1
+    new byte[] { 0xA1, 0xE0, 0xAF, 0x6F }, // 39: rock 2
+    new byte[] { 0xA2, 0xE0, 0xAF, 0x6F }, // 40: rock 3
+    new byte[] { 0xA3, 0xE0, 0xAF, 0x6F }, // 41: rock 4
+    new byte[] { 0x83, 0xEF, 0x9B, 0x4A }, // 42: Deer
+    new byte[] { 0x94, 0x7C, 0x6E, 0x70 }, // 43: Elk
+    new byte[] { 0x76, 0x7B, 0x79, 0x41 }, // 44: Rabbit
+    new byte[] { 0x73, 0x48, 0xDC, 0x5B }, // 45: Beach
+    new byte[] { 0x23, 0x3A, 0xF2, 0x31 }, // 46: Low Desert Wind
+    new byte[] { 0x13, 0x3D, 0xEF, 0x67 }, // 47: Middle Desert Wind
+    new byte[] { 0xF3, 0x02, 0x56, 0xDF }, // 48: Strong Desert Wind
+    new byte[] { 0x23, 0x9A, 0xF5, 0x89 }, // 49: bright Forest with birds
+    new byte[] { 0x63, 0x53, 0x8E, 0x11 }, // 50: dark Forest with owl
+    new byte[] { 0xA3, 0xBB, 0x52, 0xA9 }, // 51: lava
+    new byte[] { 0xD3, 0xD2, 0xAA, 0x5A }, // 52: meadow with much crickets
+    new byte[] { 0xD3, 0x37, 0x34, 0x62 }, // 53: meadow with some crickets and birds
+    new byte[] { 0xF3, 0x51, 0x5D, 0x87 }, // 54: river
+    new byte[] { 0xD3, 0x57, 0x57, 0xF3 }, // 55: small water stream
+    new byte[] { 0x63, 0xA7, 0x68, 0x3B }, // 56: swamp
+    new byte[] { 0x13, 0x71, 0xA6, 0x00 }  // 57: water waves
+};
+
+        private static readonly byte[][] AdK_logical_grid = new byte[][]
+        {
+    new byte[] { 0x1A, 0x2E, 0x6B, 0xA2 }, // 0: field_egypt
+    new byte[] { 0x7D, 0x2E, 0xCF, 0xE8 }, // 1: __HighlandFirA
+    new byte[] { 0x7E, 0x2E, 0xCF, 0xE8 }, // 2: __HighlandFirB
+    new byte[] { 0x7F, 0x2E, 0xCF, 0xE8 }, // 3: __HighlandFirC
+    new byte[] { 0x80, 0x2E, 0xCF, 0xE8 }, // 4: --SnowFirA straight pos
+    new byte[] { 0x81, 0x2E, 0xCF, 0xE8 }, // 5: --SnowFirB straight pos
+    new byte[] { 0x82, 0x2E, 0xCF, 0xE8 }, // 6: --SnowFirC straight pos
+    new byte[] { 0x83, 0x2E, 0xCF, 0xE8 }, // 7: --SnowFirA random pos
+    new byte[] { 0x84, 0x2E, 0xCF, 0xE8 }, // 8: --SnowFirB random pos
+    new byte[] { 0x85, 0x2E, 0xCF, 0xE8 }, // 9: --SnowFirC random pos
+    new byte[] { 0x86, 0x2E, 0xCF, 0xE8 }, // 10: --SnowFirD random pos
+    new byte[] { 0x87, 0x2E, 0xCF, 0xE8 }, // 11: --SnowFirE random pos
+    new byte[] { 0x88, 0x2E, 0xCF, 0xE8 }, // 12: --SnowFirF random pos
+    new byte[] { 0x89, 0x2E, 0xCF, 0xE8 }, // 13: Weeping Willow
+    new byte[] { 0x8A, 0x2E, 0xCF, 0xE8 }, // 14: Birch New 1
+    new byte[] { 0x8B, 0x2E, 0xCF, 0xE8 }, // 15: Birch New 2
+    new byte[] { 0x8C, 0x2E, 0xCF, 0xE8 }, // 16: Birch New 3
+    new byte[] { 0x8D, 0x2E, 0xCF, 0xE8 }, // 17: Chestnut 1
+    new byte[] { 0x8E, 0x2E, 0xCF, 0xE8 }, // 18: Chestnut 2
+    new byte[] { 0x8F, 0x2E, 0xCF, 0xE8 }, // 19: Chestnut 3
+    new byte[] { 0x90, 0x2E, 0xCF, 0xE8 }, // 20: Apple Tree 1
+    new byte[] { 0x91, 0x2E, 0xCF, 0xE8 }, // 21: Apple Tree 2
+    new byte[] { 0x10, 0xBB, 0x81, 0xA1 }, // 22: __Highland rock 1
+    new byte[] { 0x11, 0xBB, 0x81, 0xA1 }, // 23: __Highland rock 2
+    new byte[] { 0x12, 0xBB, 0x81, 0xA1 }, // 24: __Highland rock 3
+    new byte[] { 0x13, 0xBB, 0x81, 0xA1 }, // 25: __Highland rock 4
+    new byte[] { 0x20, 0x10, 0x2F, 0xF2 }, // 26: --Snow Iceberg 1
+    new byte[] { 0x21, 0x10, 0x2F, 0xF2 }, // 27: --Snow Iceberg 2
+    new byte[] { 0x03, 0x2D, 0x66, 0x3D }, // 28: Tent
+    new byte[] { 0x33, 0xCA, 0xAE, 0x62 }, // 29: Sheep
+    new byte[] { 0x72, 0xA5, 0x1F, 0x10 }, // 30: Bear
+    new byte[] { 0x73, 0xA5, 0x1F, 0x10 }, // 31: Ox
+    new byte[] { 0x79, 0xA5, 0x1F, 0x10 }, // 32: Highland Cattle
+    new byte[] { 0x74, 0xA5, 0x1F, 0x10 }, // 33: Goat
+    new byte[] { 0x75, 0xA5, 0x1F, 0x10 }, // 34: Polarbear
+    new byte[] { 0x76, 0xA5, 0x1F, 0x10 }, // 35: Mountain Hare
+    new byte[] { 0x77, 0xA5, 0x1F, 0x10 }, // 36: Boar
+    new byte[] { 0x78, 0xA5, 0x1F, 0x10 }, // 37: Camel
+    new byte[] { 0x53, 0x0D, 0x69, 0xA4 }, // 38: hightlands less birds
+    new byte[] { 0x23, 0xB1, 0x89, 0x6C }, // 39: hightlands normal birds
+    new byte[] { 0x83, 0xE4, 0x4E, 0x71 }, // 40: hightlands much birds
+    new byte[] { 0x63, 0x0A, 0x6C, 0x6E }, // 41: ice
+    new byte[] { 0x43, 0xEB, 0x22, 0xF5 }, // 42: mountains
+    new byte[] { 0xD8, 0x70, 0xB3, 0xA3 }, // 43: AnimalSpawn (Deer, Elk, Rabbit)
+    new byte[] { 0x23, 0x89, 0xA5, 0x07 }, // 44: SheepSpawn
+    new byte[] { 0x33, 0x10, 0x75, 0xBE }, // 45: DeerSpawn
+    new byte[] { 0x53, 0xB9, 0x3D, 0x52 }, // 46: RabbitSpawn
+    new byte[] { 0x72, 0xC8, 0xA5, 0xFC }, // 47: __Highland Bear Spawn
+    new byte[] { 0x73, 0xC8, 0xA5, 0xFC }, // 48: !!!MED Bear Spawn
+    new byte[] { 0x74, 0xC8, 0xA5, 0xFC }, // 49: Bear Spawn
+    new byte[] { 0x75, 0xC8, 0xA5, 0xFC }, // 50: --Snow Polar Bear Spawn (+ Mountain Hare)
+    new byte[] { 0x76, 0xC8, 0xA5, 0xFC }, // 51: __Highland Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Highland Cattle)
+    new byte[] { 0x77, 0xC8, 0xA5, 0xFC }, // 52: Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
+    new byte[] { 0x78, 0xC8, 0xA5, 0xFC }, // 53: !!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
+    new byte[] { 0x79, 0xC8, 0xA5, 0xFC }  // 54: !!!MED Camel Spawn
+        };
 
         private static readonly int[] AdK_logical_grid_types = new int[]
         {
