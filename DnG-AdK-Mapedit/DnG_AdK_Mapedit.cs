@@ -2777,24 +2777,25 @@ namespace DnG_AdK_Mapedit
                     int source = BitConverter.ToInt32(DnG_logical_grid[swap.from], 0);
                     byte[] target = AdK_logical_grid[swap.to];
 
+                    //Source and target types are equal
                     if (source_type == target_type || (source_type <= 1 && target_type <= 1))
                     {
                         //Deposits
-                        if (source_type <= 1 && target_type <= 1)
+                        if (source_type <= 1)
                         {
                             for (int i = 0; i < deposits_amount; i++)
                             {
-                                int deposit_start = deposits_beginning + (i * 108);
-                                int type_offset = deposit_start + 4;
+                                //Skip deposits amount
+                                int deposit_start = deposits_beginning + (i * 108) + 4;
 
                                 // Read type buffer directly from stream
-                                adk_memory_stream.Position = type_offset;
+                                adk_memory_stream.Position = deposit_start;
                                 byte[] type_buffer = new byte[4];
                                 adk_memory_stream.Read(type_buffer, 0, 4);
 
                                 if (source == BitConverter.ToInt32(type_buffer, 0))
                                 {
-                                    ReplaceStreamBytes(adk_memory_stream, type_offset, 4, target, 0, 4);
+                                    ReplaceStreamBytes(adk_memory_stream, deposit_start, 4, target, 0, 4);
 
                                     if (source_type != target_type)
                                     {
@@ -2835,7 +2836,28 @@ namespace DnG_AdK_Mapedit
                             }
                             continue;
                         }
+                        
+                        //Animals
+                        if (source_type == 2)
+                        {
+                            for (int i = 0; i < animals_amount; i++)
+                            {
+                                //Skip animals amount
+                                int animal_start = animals_beginning + (i * 244) + 4;
+
+                                // Read type buffer directly from stream
+                                adk_memory_stream.Position = animal_start;
+                                byte[] type_buffer = new byte[4];
+                                adk_memory_stream.Read(type_buffer, 0, 4);
+
+                                if (source == BitConverter.ToInt32(type_buffer, 0))
+                                {
+                                    ReplaceStreamBytes(adk_memory_stream, animal_start, 4, target, 0, 4);
+                                }
+                            }
+                        }
                     }
+                    //Source and target types are not equal
                     else
                     {
 
@@ -3507,83 +3529,6 @@ namespace DnG_AdK_Mapedit
         new byte[] { 0x79, 0xC8, 0xA5, 0xFC }  // 11: !!!MED Camel Spawn
     };
 
-        private static readonly byte[][] DnG_textures = new byte[][]
-    {
-        new byte[] { 0x89, 0xA5, 0x1C, 0xFA }, // [0]  !!!MED (RES) rocky earth
-        new byte[] { 0x86, 0xA5, 0x1C, 0xFA }, // [1]  !!!MED (RES) rocky earth big
-        new byte[] { 0x88, 0xA5, 0x1C, 0xFA }, // [2]  !!!MED (RES) rocky earth dark
-        new byte[] { 0x87, 0xA5, 0x1C, 0xFA }, // [3]  !!!MED (RES) rocky plants
-        new byte[] { 0x70, 0xA5, 0x1C, 0xFA }, // [4]  !!!MED ground 00
-        new byte[] { 0x71, 0xA5, 0x1C, 0xFA }, // [5]  !!!MED ground 01
-        new byte[] { 0x60, 0xA5, 0x1C, 0xFA }, // [6]  !!!MED meadow 00
-        new byte[] { 0x61, 0xA5, 0x1C, 0xFA }, // [7]  !!!MED meadow 01
-        new byte[] { 0x62, 0xA5, 0x1C, 0xFA }, // [8]  !!!MED meadow 02
-        new byte[] { 0x63, 0xA5, 0x1C, 0xFA }, // [9]  !!!MED meadow 03
-        new byte[] { 0x80, 0xA5, 0x1C, 0xFA }, // [10] !!!MED rock
-        new byte[] { 0x81, 0xA5, 0x1C, 0xFA }, // [11] !!!MED rock big
-        new byte[] { 0x83, 0xA5, 0x1C, 0xFA }, // [12] !!!MED rock red
-        new byte[] { 0x85, 0xA5, 0x1C, 0xFA }, // [13] !!!MED rock red big
-        new byte[] { 0x84, 0xA5, 0x1C, 0xFA }, // [14] !!!MED rock red small
-        new byte[] { 0x82, 0xA5, 0x1C, 0xFA }, // [15] !!!MED rock small
-        new byte[] { 0x90, 0xA5, 0x1C, 0xFA }, // [16] !!!MED seaground rock
-        new byte[] { 0x91, 0xA5, 0x1C, 0xFA }, // [17] !!!MED seaground rock red
-        new byte[] { 0x8A, 0xA5, 0x1C, 0xFA }, // [18] !!!MED stone ground
-        new byte[] { 0x03, 0xDE, 0xCA, 0xDE }, // [19] ((00 LAVA 01
-        new byte[] { 0x0A, 0xDE, 0xCA, 0xDE }, // [20] ((00 LAVA 01 soft
-        new byte[] { 0x08, 0xDE, 0xCA, 0xDE }, // [21] ((00 LAVA 02
-        new byte[] { 0x70, 0xDB, 0x7A, 0xF6 }, // [22] ((00 LAVA Meadow 00
-        new byte[] { 0x70, 0xBB, 0xCA, 0xF1 }, // [23] ((00 LAVA Sand 00
-        new byte[] { 0x02, 0xDE, 0xCA, 0xDE }, // [24] ((00 LAVA ground
-        new byte[] { 0x09, 0xDE, 0xCA, 0xDE }, // [25] ((00 LAVA ground flat
-        new byte[] { 0x07, 0xDE, 0xCA, 0xDE }, // [26] ((00 LAVA ground rough
-        new byte[] { 0x04, 0xDE, 0xCA, 0xDE }, // [27] ((00 LAVA rock
-        new byte[] { 0x05, 0xDE, 0xCA, 0xDE }, // [28] ((00 LAVA rock big
-        new byte[] { 0xB0, 0xFA, 0x87, 0xCA }, // [29] ((00 LAVA rock floating lava
-        new byte[] { 0x06, 0xDE, 0xCA, 0xDE }, // [30] ((00 LAVA rock small
-        new byte[] { 0xFF, 0xCA, 0xFE, 0xCA }, // [31] (RES) rocky earth
-        new byte[] { 0x02, 0xCB, 0xFE, 0xCA }, // [32] (RES) rocky earth big
-        new byte[] { 0x04, 0xCB, 0xFE, 0xCA }, // [33] (RES) rocky earth dark
-        new byte[] { 0x03, 0xCB, 0xFE, 0xCA }, // [34] (RES) rocky plants
-        new byte[] { 0x1A, 0x70, 0x56, 0xCA }, // [35] DO NOT USE
-        new byte[] { 0x01, 0xDE, 0xCA, 0xDE }, // [36] HARBOR
-        new byte[] { 0x73, 0x18, 0xD3, 0x76 }, // [37] border
-        new byte[] { 0xC2, 0xFA, 0x45, 0x45 }, // [38] earth
-        new byte[] { 0xC4, 0xFA, 0x45, 0x45 }, // [39] leaf
-        new byte[] { 0xE3, 0xE8, 0xE4, 0xBF }, // [40] meadow
-        new byte[] { 0xC3, 0xFA, 0x45, 0x45 }, // [41] meadow bright
-        new byte[] { 0xC6, 0xFA, 0x45, 0x45 }, // [42] meadow dark small
-        new byte[] { 0x10, 0x11, 0x5E, 0xDE }, // [43] meadow ground
-        new byte[] { 0xC5, 0xFA, 0x45, 0x45 }, // [44] meadow leaf
-        new byte[] { 0xC7, 0xFA, 0x45, 0x45 }, // [45] meadow red flowers
-        new byte[] { 0xC1, 0xFA, 0x45, 0x45 }, // [46] meadow yellow flowers
-        new byte[] { 0xFE, 0xAF, 0x0F, 0xD0 }, // [47] rock
-        new byte[] { 0xEF, 0xBE, 0xAD, 0xDE }, // [48] rock big
-        new byte[] { 0xFE, 0xCA, 0xFE, 0xCA }, // [49] rock small
-        new byte[] { 0x00, 0xCB, 0xFE, 0xCA }, // [50] rock stretched x
-        new byte[] { 0x01, 0xCB, 0xFE, 0xCA }, // [51] rock stretched y
-        new byte[] { 0x0D, 0xB0, 0xDE, 0xBA }, // [52] sand
-        new byte[] { 0x0E, 0xB0, 0xDE, 0xBA }, // [53] sand stones
-        new byte[] { 0x0B, 0xB0, 0xBE, 0xBA }, // [54] seaground
-        new byte[] { 0xE4, 0x74, 0x33, 0x01 }, // [55] seaground plants
-        new byte[] { 0xE6, 0x74, 0x33, 0x01 }, // [56] seaground plants rock
-        new byte[] { 0xE7, 0x74, 0x33, 0x01 }, // [57] seaground rock
-        new byte[] { 0xE8, 0x74, 0x33, 0x01 }, // [58] seaground rocky
-        new byte[] { 0xE5, 0x74, 0x33, 0x01 }, // [59] seaground sand
-        new byte[] { 0xFF, 0xE0, 0xAD, 0x0F }, // [60] snow
-        new byte[] { 0x05, 0xCB, 0xFE, 0xCA }, // [61] stone ground
-        new byte[] { 0xE4, 0x04, 0x00, 0x68 }, // [62] swamp land
-        new byte[] { 0xE6, 0x04, 0x00, 0x68 }, // [63] swamp meadow (unblocked)
-        new byte[] { 0xE5, 0x04, 0x00, 0x68 }, // [64] swamp water
-        new byte[] { 0xB3, 0xD1, 0x6B, 0xFE }, // [65] water
-        new byte[] { 0xC0, 0xA8, 0x7F, 0x77 }, // [66] §§Desert earth
-        new byte[] { 0xC9, 0xFA, 0x45, 0x45 }, // [67] §§Desert meadow
-        new byte[] { 0x0F, 0xB0, 0xDE, 0xBA }, // [68] §§Desert sand dune
-        new byte[] { 0x12, 0xB0, 0xDE, 0xBA }, // [69] §§Desert sand ripple
-        new byte[] { 0x11, 0xB0, 0xDE, 0xBA }, // [70] §§Desert sand small dune
-        new byte[] { 0x13, 0xB0, 0xDE, 0xBA }, // [71] §§Desert sand small ripple
-        new byte[] { 0x10, 0xB0, 0xDE, 0xBA }  // [72] §§Desert sand yellow
-    };
-
         // Array storing the texture type corresponding to each terrain index (0 to 72)
         private static readonly int[] DnG_texture_types = new int[]
         {
@@ -3662,52 +3607,6 @@ namespace DnG_AdK_Mapedit
         3  // [72] §§Desert sand yellow 3
         };
 
-        // Array storing the 4-byte sequences for each terrain entry (index 0 to 40)
-        private static readonly byte[][] AdK_textures = new byte[][]
-        {
-        new byte[] { 0x02, 0x4A, 0xC4, 0x7A }, // [0]  __Highland meadow bright
-        new byte[] { 0x03, 0x4A, 0xC4, 0x7A }, // [1]  __Highland meadow bright rocks
-        new byte[] { 0x04, 0x4A, 0xC4, 0x7A }, // [2]  __Highland meadow medium
-        new byte[] { 0x05, 0x4A, 0xC4, 0x7A }, // [3]  __Highland meadow medium rocks
-        new byte[] { 0x06, 0x4A, 0xC4, 0x7A }, // [4]  __Highland meadow dark
-        new byte[] { 0x07, 0x4A, 0xC4, 0x7A }, // [5]  __Highland meadow dark rocks
-        new byte[] { 0x00, 0x4D, 0xC4, 0x7A }, // [6]  __Highland earth fir moss
-        new byte[] { 0x01, 0x4D, 0xC4, 0x7A }, // [7]  __Highland earth fir
-        new byte[] { 0x02, 0x4D, 0xC4, 0x7A }, // [8]  __Highland earth
-        new byte[] { 0x02, 0x4B, 0xC4, 0x7A }, // [9]  __Highland rock
-        new byte[] { 0x03, 0x4B, 0xC4, 0x7A }, // [10] __Highland rock big
-        new byte[] { 0x04, 0x4B, 0xC4, 0x7A }, // [11] __Highland (RES) rocky earth
-        new byte[] { 0x05, 0x4B, 0xC4, 0x7A }, // [12] __Highland rock flat
-        new byte[] { 0x06, 0x4B, 0xC4, 0x7A }, // [13] __Highland rock dark big
-        new byte[] { 0x07, 0x4B, 0xC4, 0x7A }, // [14] __Highland rock dark flat
-        new byte[] { 0x08, 0x4B, 0xC4, 0x7A }, // [15] __Highland rock braid flat
-        new byte[] { 0x0D, 0x4B, 0xC4, 0x7A }, // [16] __Highland stone ground
-        new byte[] { 0x09, 0x4B, 0xC4, 0x7A }, // [17] --Snow highland rock much
-        new byte[] { 0x0A, 0x4B, 0xC4, 0x7A }, // [18] --Snow highland rock
-        new byte[] { 0x0B, 0x4B, 0xC4, 0x7A }, // [19] --Snow highland rock part
-        new byte[] { 0x0C, 0x4B, 0xC4, 0x7A }, // [20] --Snow (RES) rocky earth
-        new byte[] { 0x0B, 0x4E, 0xC4, 0x7A }, // [21] --Snow meadow
-        new byte[] { 0x0C, 0x4E, 0xC4, 0x7A }, // [22] --Snow meadow snow
-        new byte[] { 0x0D, 0x4E, 0xC4, 0x7A }, // [23] --Snow meadow snow 2
-        new byte[] { 0x0E, 0x4E, 0xC4, 0x7A }, // [24] --Snow meadow snow 3
-        new byte[] { 0x0F, 0x4E, 0xC4, 0x7A }, // [25] --Snow meadow Treeground 80x80,200x200
-        new byte[] { 0x10, 0x4E, 0xC4, 0x7A }, // [26] --Snow meadow Treeground 125x125
-        new byte[] { 0x11, 0x4E, 0xC4, 0x7A }, // [27] --Snow meadow Treeground 170x170
-        new byte[] { 0x12, 0x4E, 0xC4, 0x7A }, // [28] --Snow meadow Treeground 255x255
-        new byte[] { 0x10, 0x4C, 0xC4, 0x7A }, // [29] __Highland swamp land
-        new byte[] { 0x11, 0x4C, 0xC4, 0x7A }, // [30] __Highland swamp water
-        new byte[] { 0x12, 0x4C, 0xC4, 0x7A }, // [31] __Highland swamp meadow (unblocked)
-        new byte[] { 0x02, 0x4C, 0xC4, 0x7A }, // [32] __Highland seaground rocks
-        new byte[] { 0x03, 0x4C, 0xC4, 0x7A }, // [33] __Highland seaground rocks dark flat
-        new byte[] { 0x04, 0x4C, 0xC4, 0x7A }, // [34] __Highland seaground pebbles
-        new byte[] { 0x0E, 0x5E, 0xC4, 0x7A }, // [35] --Snow Ice Crackles
-        new byte[] { 0x0F, 0x5E, 0xC4, 0x7A }, // [36] --Snow Ice Crackles Dark
-        new byte[] { 0x10, 0x5E, 0xC4, 0x7A }, // [37] --Snow Ice Clean
-        new byte[] { 0x13, 0x5E, 0xC4, 0x7A }, // [38] --Snow Ice Clean Dark
-        new byte[] { 0x11, 0x5E, 0xC4, 0x7A }, // [39] --Snow medium border
-        new byte[] { 0x12, 0x5E, 0xC4, 0x7A }  // [40] --Snow soft border
-        };
-
         // Array storing the texture type corresponding to each terrain index (0 to 40)
         private static readonly int[] AdK_texture_types = new int[]
         {
@@ -3752,6 +3651,129 @@ namespace DnG_AdK_Mapedit
         4, // [38] --Snow Ice Clean Dark 4
         4, // [39] --Snow medium border 4
         4  // [40] --Snow soft border 4
+        };
+
+        private static readonly byte[][] DnG_textures = new byte[][]
+{
+        new byte[] { 0x89, 0xA5, 0x1C, 0xFA }, // [0]  !!!MED (RES) rocky earth
+        new byte[] { 0x86, 0xA5, 0x1C, 0xFA }, // [1]  !!!MED (RES) rocky earth big
+        new byte[] { 0x88, 0xA5, 0x1C, 0xFA }, // [2]  !!!MED (RES) rocky earth dark
+        new byte[] { 0x87, 0xA5, 0x1C, 0xFA }, // [3]  !!!MED (RES) rocky plants
+        new byte[] { 0x70, 0xA5, 0x1C, 0xFA }, // [4]  !!!MED ground 00
+        new byte[] { 0x71, 0xA5, 0x1C, 0xFA }, // [5]  !!!MED ground 01
+        new byte[] { 0x60, 0xA5, 0x1C, 0xFA }, // [6]  !!!MED meadow 00
+        new byte[] { 0x61, 0xA5, 0x1C, 0xFA }, // [7]  !!!MED meadow 01
+        new byte[] { 0x62, 0xA5, 0x1C, 0xFA }, // [8]  !!!MED meadow 02
+        new byte[] { 0x63, 0xA5, 0x1C, 0xFA }, // [9]  !!!MED meadow 03
+        new byte[] { 0x80, 0xA5, 0x1C, 0xFA }, // [10] !!!MED rock
+        new byte[] { 0x81, 0xA5, 0x1C, 0xFA }, // [11] !!!MED rock big
+        new byte[] { 0x83, 0xA5, 0x1C, 0xFA }, // [12] !!!MED rock red
+        new byte[] { 0x85, 0xA5, 0x1C, 0xFA }, // [13] !!!MED rock red big
+        new byte[] { 0x84, 0xA5, 0x1C, 0xFA }, // [14] !!!MED rock red small
+        new byte[] { 0x82, 0xA5, 0x1C, 0xFA }, // [15] !!!MED rock small
+        new byte[] { 0x90, 0xA5, 0x1C, 0xFA }, // [16] !!!MED seaground rock
+        new byte[] { 0x91, 0xA5, 0x1C, 0xFA }, // [17] !!!MED seaground rock red
+        new byte[] { 0x8A, 0xA5, 0x1C, 0xFA }, // [18] !!!MED stone ground
+        new byte[] { 0x03, 0xDE, 0xCA, 0xDE }, // [19] ((00 LAVA 01
+        new byte[] { 0x0A, 0xDE, 0xCA, 0xDE }, // [20] ((00 LAVA 01 soft
+        new byte[] { 0x08, 0xDE, 0xCA, 0xDE }, // [21] ((00 LAVA 02
+        new byte[] { 0x70, 0xDB, 0x7A, 0xF6 }, // [22] ((00 LAVA Meadow 00
+        new byte[] { 0x70, 0xBB, 0xCA, 0xF1 }, // [23] ((00 LAVA Sand 00
+        new byte[] { 0x02, 0xDE, 0xCA, 0xDE }, // [24] ((00 LAVA ground
+        new byte[] { 0x09, 0xDE, 0xCA, 0xDE }, // [25] ((00 LAVA ground flat
+        new byte[] { 0x07, 0xDE, 0xCA, 0xDE }, // [26] ((00 LAVA ground rough
+        new byte[] { 0x04, 0xDE, 0xCA, 0xDE }, // [27] ((00 LAVA rock
+        new byte[] { 0x05, 0xDE, 0xCA, 0xDE }, // [28] ((00 LAVA rock big
+        new byte[] { 0xB0, 0xFA, 0x87, 0xCA }, // [29] ((00 LAVA rock floating lava
+        new byte[] { 0x06, 0xDE, 0xCA, 0xDE }, // [30] ((00 LAVA rock small
+        new byte[] { 0xFF, 0xCA, 0xFE, 0xCA }, // [31] (RES) rocky earth
+        new byte[] { 0x02, 0xCB, 0xFE, 0xCA }, // [32] (RES) rocky earth big
+        new byte[] { 0x04, 0xCB, 0xFE, 0xCA }, // [33] (RES) rocky earth dark
+        new byte[] { 0x03, 0xCB, 0xFE, 0xCA }, // [34] (RES) rocky plants
+        new byte[] { 0x1A, 0x70, 0x56, 0xCA }, // [35] DO NOT USE
+        new byte[] { 0x01, 0xDE, 0xCA, 0xDE }, // [36] HARBOR
+        new byte[] { 0x73, 0x18, 0xD3, 0x76 }, // [37] border
+        new byte[] { 0xC2, 0xFA, 0x45, 0x45 }, // [38] earth
+        new byte[] { 0xC4, 0xFA, 0x45, 0x45 }, // [39] leaf
+        new byte[] { 0xE3, 0xE8, 0xE4, 0xBF }, // [40] meadow
+        new byte[] { 0xC3, 0xFA, 0x45, 0x45 }, // [41] meadow bright
+        new byte[] { 0xC6, 0xFA, 0x45, 0x45 }, // [42] meadow dark small
+        new byte[] { 0x10, 0x11, 0x5E, 0xDE }, // [43] meadow ground
+        new byte[] { 0xC5, 0xFA, 0x45, 0x45 }, // [44] meadow leaf
+        new byte[] { 0xC7, 0xFA, 0x45, 0x45 }, // [45] meadow red flowers
+        new byte[] { 0xC1, 0xFA, 0x45, 0x45 }, // [46] meadow yellow flowers
+        new byte[] { 0xFE, 0xAF, 0x0F, 0xD0 }, // [47] rock
+        new byte[] { 0xEF, 0xBE, 0xAD, 0xDE }, // [48] rock big
+        new byte[] { 0xFE, 0xCA, 0xFE, 0xCA }, // [49] rock small
+        new byte[] { 0x00, 0xCB, 0xFE, 0xCA }, // [50] rock stretched x
+        new byte[] { 0x01, 0xCB, 0xFE, 0xCA }, // [51] rock stretched y
+        new byte[] { 0x0D, 0xB0, 0xDE, 0xBA }, // [52] sand
+        new byte[] { 0x0E, 0xB0, 0xDE, 0xBA }, // [53] sand stones
+        new byte[] { 0x0B, 0xB0, 0xBE, 0xBA }, // [54] seaground
+        new byte[] { 0xE4, 0x74, 0x33, 0x01 }, // [55] seaground plants
+        new byte[] { 0xE6, 0x74, 0x33, 0x01 }, // [56] seaground plants rock
+        new byte[] { 0xE7, 0x74, 0x33, 0x01 }, // [57] seaground rock
+        new byte[] { 0xE8, 0x74, 0x33, 0x01 }, // [58] seaground rocky
+        new byte[] { 0xE5, 0x74, 0x33, 0x01 }, // [59] seaground sand
+        new byte[] { 0xFF, 0xE0, 0xAD, 0x0F }, // [60] snow
+        new byte[] { 0x05, 0xCB, 0xFE, 0xCA }, // [61] stone ground
+        new byte[] { 0xE4, 0x04, 0x00, 0x68 }, // [62] swamp land
+        new byte[] { 0xE6, 0x04, 0x00, 0x68 }, // [63] swamp meadow (unblocked)
+        new byte[] { 0xE5, 0x04, 0x00, 0x68 }, // [64] swamp water
+        new byte[] { 0xB3, 0xD1, 0x6B, 0xFE }, // [65] water
+        new byte[] { 0xC0, 0xA8, 0x7F, 0x77 }, // [66] §§Desert earth
+        new byte[] { 0xC9, 0xFA, 0x45, 0x45 }, // [67] §§Desert meadow
+        new byte[] { 0x0F, 0xB0, 0xDE, 0xBA }, // [68] §§Desert sand dune
+        new byte[] { 0x12, 0xB0, 0xDE, 0xBA }, // [69] §§Desert sand ripple
+        new byte[] { 0x11, 0xB0, 0xDE, 0xBA }, // [70] §§Desert sand small dune
+        new byte[] { 0x13, 0xB0, 0xDE, 0xBA }, // [71] §§Desert sand small ripple
+        new byte[] { 0x10, 0xB0, 0xDE, 0xBA }  // [72] §§Desert sand yellow
+};
+
+        // Array storing the 4-byte sequences for each terrain entry (index 0 to 40)
+        private static readonly byte[][] AdK_textures = new byte[][]
+        {
+        new byte[] { 0x02, 0x4A, 0xC4, 0x7A }, // [0]  __Highland meadow bright
+        new byte[] { 0x03, 0x4A, 0xC4, 0x7A }, // [1]  __Highland meadow bright rocks
+        new byte[] { 0x04, 0x4A, 0xC4, 0x7A }, // [2]  __Highland meadow medium
+        new byte[] { 0x05, 0x4A, 0xC4, 0x7A }, // [3]  __Highland meadow medium rocks
+        new byte[] { 0x06, 0x4A, 0xC4, 0x7A }, // [4]  __Highland meadow dark
+        new byte[] { 0x07, 0x4A, 0xC4, 0x7A }, // [5]  __Highland meadow dark rocks
+        new byte[] { 0x00, 0x4D, 0xC4, 0x7A }, // [6]  __Highland earth fir moss
+        new byte[] { 0x01, 0x4D, 0xC4, 0x7A }, // [7]  __Highland earth fir
+        new byte[] { 0x02, 0x4D, 0xC4, 0x7A }, // [8]  __Highland earth
+        new byte[] { 0x02, 0x4B, 0xC4, 0x7A }, // [9]  __Highland rock
+        new byte[] { 0x03, 0x4B, 0xC4, 0x7A }, // [10] __Highland rock big
+        new byte[] { 0x04, 0x4B, 0xC4, 0x7A }, // [11] __Highland (RES) rocky earth
+        new byte[] { 0x05, 0x4B, 0xC4, 0x7A }, // [12] __Highland rock flat
+        new byte[] { 0x06, 0x4B, 0xC4, 0x7A }, // [13] __Highland rock dark big
+        new byte[] { 0x07, 0x4B, 0xC4, 0x7A }, // [14] __Highland rock dark flat
+        new byte[] { 0x08, 0x4B, 0xC4, 0x7A }, // [15] __Highland rock braid flat
+        new byte[] { 0x0D, 0x4B, 0xC4, 0x7A }, // [16] __Highland stone ground
+        new byte[] { 0x09, 0x4B, 0xC4, 0x7A }, // [17] --Snow highland rock much
+        new byte[] { 0x0A, 0x4B, 0xC4, 0x7A }, // [18] --Snow highland rock
+        new byte[] { 0x0B, 0x4B, 0xC4, 0x7A }, // [19] --Snow highland rock part
+        new byte[] { 0x0C, 0x4B, 0xC4, 0x7A }, // [20] --Snow (RES) rocky earth
+        new byte[] { 0x0B, 0x4E, 0xC4, 0x7A }, // [21] --Snow meadow
+        new byte[] { 0x0C, 0x4E, 0xC4, 0x7A }, // [22] --Snow meadow snow
+        new byte[] { 0x0D, 0x4E, 0xC4, 0x7A }, // [23] --Snow meadow snow 2
+        new byte[] { 0x0E, 0x4E, 0xC4, 0x7A }, // [24] --Snow meadow snow 3
+        new byte[] { 0x0F, 0x4E, 0xC4, 0x7A }, // [25] --Snow meadow Treeground 80x80,200x200
+        new byte[] { 0x10, 0x4E, 0xC4, 0x7A }, // [26] --Snow meadow Treeground 125x125
+        new byte[] { 0x11, 0x4E, 0xC4, 0x7A }, // [27] --Snow meadow Treeground 170x170
+        new byte[] { 0x12, 0x4E, 0xC4, 0x7A }, // [28] --Snow meadow Treeground 255x255
+        new byte[] { 0x10, 0x4C, 0xC4, 0x7A }, // [29] __Highland swamp land
+        new byte[] { 0x11, 0x4C, 0xC4, 0x7A }, // [30] __Highland swamp water
+        new byte[] { 0x12, 0x4C, 0xC4, 0x7A }, // [31] __Highland swamp meadow (unblocked)
+        new byte[] { 0x02, 0x4C, 0xC4, 0x7A }, // [32] __Highland seaground rocks
+        new byte[] { 0x03, 0x4C, 0xC4, 0x7A }, // [33] __Highland seaground rocks dark flat
+        new byte[] { 0x04, 0x4C, 0xC4, 0x7A }, // [34] __Highland seaground pebbles
+        new byte[] { 0x0E, 0x5E, 0xC4, 0x7A }, // [35] --Snow Ice Crackles
+        new byte[] { 0x0F, 0x5E, 0xC4, 0x7A }, // [36] --Snow Ice Crackles Dark
+        new byte[] { 0x10, 0x5E, 0xC4, 0x7A }, // [37] --Snow Ice Clean
+        new byte[] { 0x13, 0x5E, 0xC4, 0x7A }, // [38] --Snow Ice Clean Dark
+        new byte[] { 0x11, 0x5E, 0xC4, 0x7A }, // [39] --Snow medium border
+        new byte[] { 0x12, 0x5E, 0xC4, 0x7A }  // [40] --Snow soft border
         };
 
         private static readonly int[] DnG_logical_grid_types = new int[]
@@ -3814,6 +3836,65 @@ namespace DnG_AdK_Mapedit
     4, //small water stream
     4, //swamp
     4, //water waves
+};
+
+        private static readonly int[] AdK_logical_grid_types = new int[]
+{
+    1, //field_egypt
+    0, //__HighlandFirA
+    0, //__HighlandFirB
+    0, //__HighlandFirC
+    0, //--SnowFirA straight pos
+    0, //--SnowFirB straight pos
+    0, //--SnowFirC straight pos
+    0, //--SnowFirA random pos
+    0, //--SnowFirB random pos
+    0, //--SnowFirC random pos
+    0, //--SnowFirD random pos
+    0, //--SnowFirE random pos
+    0, //--SnowFirF random pos
+    0, //Weeping Willow
+    0, //Birch New 1
+    0, //Birch New 2
+    0, //Birch New 3
+    0, //Chestnut 1
+    0, //Chestnut 2
+    0, //Chestnut 3
+    0, //Apple Tree 1
+    0, //Apple Tree 2
+    3, //__Highland rock 1
+    3, //__Highland rock 2
+    3, //__Highland rock 3
+    3, //__Highland rock 4
+    3, //--Snow Iceberg 1
+    3, //--Snow Iceberg 2
+    3, //Tent
+    2, //Sheep
+    2, //Bear
+    2, //Ox
+    2, //Highland Cattle
+    2, //Goat
+    2, //Polarbear
+    2, //Mountain Hare
+    2, //Boar
+    2, //Camel
+    4, //hightlands less birds
+    4, //hightlands normal birds
+    4, //hightlands much birds
+    4, //ice
+    4, //mountains
+    5, //AnimalSpawn (Deer, Elk, Rabbit)
+    5, //SheepSpawn
+    5, //DeerSpawn
+    5, //RabbitSpawn
+    5, //__Highland Bear Spawn
+    5, //!!!MED Bear Spawn
+    5, //Bear Spawn
+    5, //--Snow Polar Bear Spawn (+ Mountain Hare)
+    5, //__Highland Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Highland Cattle)
+    5, //Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
+    5, //!!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
+    5, //!!!MED Camel Spawn
 };
 
         private static readonly byte[][] DnG_logical_grid = new byte[][]
@@ -3937,64 +4018,158 @@ namespace DnG_AdK_Mapedit
     new byte[] { 0x79, 0xC8, 0xA5, 0xFC }  // 54: !!!MED Camel Spawn
         };
 
-        private static readonly int[] AdK_logical_grid_types = new int[]
-        {
-    1, //field_egypt
-    0, //__HighlandFirA
-    0, //__HighlandFirB
-    0, //__HighlandFirC
-    0, //--SnowFirA straight pos
-    0, //--SnowFirB straight pos
-    0, //--SnowFirC straight pos
-    0, //--SnowFirA random pos
-    0, //--SnowFirB random pos
-    0, //--SnowFirC random pos
-    0, //--SnowFirD random pos
-    0, //--SnowFirE random pos
-    0, //--SnowFirF random pos
-    0, //Weeping Willow
-    0, //Birch New 1
-    0, //Birch New 2
-    0, //Birch New 3
-    0, //Chestnut 1
-    0, //Chestnut 2
-    0, //Chestnut 3
-    0, //Apple Tree 1
-    0, //Apple Tree 2
-    3, //__Highland rock 1
-    3, //__Highland rock 2
-    3, //__Highland rock 3
-    3, //__Highland rock 4
-    3, //--Snow Iceberg 1
-    3, //--Snow Iceberg 2
-    3, //Tent
-    2, //Sheep
-    2, //Bear
-    2, //Ox
-    2, //Highland Cattle
-    2, //Goat
-    2, //Polarbear
-    2, //Mountain Hare
-    2, //Boar
-    2, //Camel
-    4, //hightlands less birds
-    4, //hightlands normal birds
-    4, //hightlands much birds
-    4, //ice
-    4, //mountains
-    5, //AnimalSpawn (Deer, Elk, Rabbit)
-    5, //SheepSpawn
-    5, //DeerSpawn
-    5, //RabbitSpawn
-    5, //__Highland Bear Spawn
-    5, //!!!MED Bear Spawn
-    5, //Bear Spawn
-    5, //--Snow Polar Bear Spawn (+ Mountain Hare)
-    5, //__Highland Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Highland Cattle)
-    5, //Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
-    5, //!!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
-    5, //!!!MED Camel Spawn
-        };
+        private static readonly int[] is_lifetime_dng = new int[]
+{
+    0, //!!MED nettle
+    0, //!!MED nettle big
+    0, //!!MED nettle high
+    0, //((LAVA fog
+    0, //((LAVA fog high
+    0, //((LAVA fog highest
+    0, //((LAVA fog vertical
+    1, //Coal (few)
+    1, //Coal (medium)
+    1, //Coal (much)
+    0, //DoNotUse-Skull01
+    1, //Empty
+    1, //Gold (few)
+    1, //Gold (medium)
+    1, //Gold (much)
+    1, //Granit (few)
+    1, //Granit (medium)
+    1, //Granit (much)
+    1, //Iron (few)
+    1, //Iron (medium)
+    1, //Iron (much)
+    1, //Water
+    0, //bones0
+    0, //bones1
+    0, //bones2
+    0, //bones3
+    0, //bush01
+    0, //cactus01
+    0, //cactus02
+    0, //cactus03
+    0, //cactus04
+    0, //dead Tree 1
+    0, //dead Tree 2
+    0, //fern big
+    0, //fern medium
+    0, //fern small
+    0, //fingerpost E
+    0, //fingerpost N
+    0, //fingerpost NE
+    0, //fingerpost NW
+    0, //fingerpost S
+    0, //fingerpost SE
+    0, //fingerpost SW
+    0, //fingerpost W
+    0, //flower red
+    0, //flower red big
+    0, //flower red high
+    0, //flower violet
+    0, //flower violet big
+    0, //flower violet high
+    0, //flower white
+    0, //flower white big
+    0, //flower white high
+    0, //flower yellow
+    0, //flower yellow big
+    0, //flower yellow high
+    0, //grass translucent
+    0, //grass translucent big dark
+    0, //grass01
+    0, //grass02
+    0, //grass03
+    0, //grass04
+    0, //high flower red
+    0, //high flower red big
+    0, //high flower white
+    0, //high flower white big
+    0, //high flower yellow
+    0, //high flower yellow big
+    0, //mushroom brown
+    0, //mushroom brown big
+    0, //mushroom red
+    0, //mushroom red big
+    0, //nettle
+    0, //nettle big
+    0, //nettle high
+    0, //shell
+    0, //shell small
+    0, //stone01
+    0, //stone01 grey
+    0, //stone02
+    0, //stone02 grey
+    0, //stone03
+    0, //stone03 grey
+    0, //stone04
+    0, //stone04 grey
+    0, //swamp calmus 01
+    0, //swamp calmus 02
+    0, //swamp calmus 03
+    0, //swampthing01
+    0, //swampthing02
+    0, //waterlily 1
+    0, //waterlily 2
+    0, //waterplant 1
+    0, //waterplant 2
+    0, //waterplant 3
+    0, //wreck
+    0  //wreck big
+};
+
+        private static readonly int[] is_lifetime_adk = new int[]
+{
+    0, //Chest
+    0, //OpenChest
+    1, //Coal (endless)
+    1, //Iron (endless)
+    1, //Gold (endless)
+    1, //Granite (endless)
+    1, //Gemstones (few)
+    1, //Gemstones (medium)
+    1, //Gemstones (much)
+    1, //Gemstones (endless)
+    1, //Salt (few)
+    1, //Salt (medium)
+    1, //Salt (much)
+    1, //Salt (endless)
+    0, //--Snow Ice Floe 01 moving
+    0, //--Snow Ice Floe 01 static
+    0, //--Snow Ice Floe 02 static
+    0, //--Snow Ice Floe 03 static
+    0, //--Snow Ice Floe 04 static
+    0, //--Snow Ice Floe 05 static
+    0, //--Snow Ice Floe 06 moving
+    0, //--Snow Ice Floe 07 moving
+    0, //--Snow Ice Floe 08 moving
+    0, //--Snow Ice Floe 09 moving
+    0, //__Highland fern big
+    0, //__Highland fern miedium
+    0, //__Highland fern small
+    0, //__Highland nettle
+    0, //__Highland nettle big
+    0, //__Highland nettle high
+    0, //__Highland Edelweiss 1
+    0, //__Highland Edelweiss 2
+    0, //__Highland Edelweiss 3
+    0, //__Highland Snowdrop
+    0, //__Highland Crocus
+    0, //__Highland Foundling 1
+    0, //__Highland Foundling 2
+    0, //__Highland Foundling 3
+    0, //__Highland Underwater Foundling 1
+    0, //__Highland Underwater Foundling 2
+    0, //__Highland Underwater Foundling 3
+    0, //__Highland swamp calmus 01
+    0, //__Highland swamp calmus 02
+    0, //__Highland swamp calmus 03
+    0, //__Highland Fog 01
+    0, //__Highland Fog 02
+    0, //Male Duck
+    0  //Female Duck
+};
 
         private static readonly byte[][] doodads_dng = new byte[][]
 {
@@ -4097,107 +4272,6 @@ namespace DnG_AdK_Mapedit
     new byte[] { 0x11, 0xE2, 0x11, 0xFA }  //wreck big
 };
 
-        private static readonly int[] is_lifetime_dng = new int[]
-{
-    0, //!!MED nettle
-    0, //!!MED nettle big
-    0, //!!MED nettle high
-    0, //((LAVA fog
-    0, //((LAVA fog high
-    0, //((LAVA fog highest
-    0, //((LAVA fog vertical
-    1, //Coal (few)
-    1, //Coal (medium)
-    1, //Coal (much)
-    0, //DoNotUse-Skull01
-    1, //Empty
-    1, //Gold (few)
-    1, //Gold (medium)
-    1, //Gold (much)
-    1, //Granit (few)
-    1, //Granit (medium)
-    1, //Granit (much)
-    1, //Iron (few)
-    1, //Iron (medium)
-    1, //Iron (much)
-    1, //Water
-    0, //bones0
-    0, //bones1
-    0, //bones2
-    0, //bones3
-    0, //bush01
-    0, //cactus01
-    0, //cactus02
-    0, //cactus03
-    0, //cactus04
-    0, //dead Tree 1
-    0, //dead Tree 2
-    0, //fern big
-    0, //fern medium
-    0, //fern small
-    0, //fingerpost E
-    0, //fingerpost N
-    0, //fingerpost NE
-    0, //fingerpost NW
-    0, //fingerpost S
-    0, //fingerpost SE
-    0, //fingerpost SW
-    0, //fingerpost W
-    0, //flower red
-    0, //flower red big
-    0, //flower red high
-    0, //flower violet
-    0, //flower violet big
-    0, //flower violet high
-    0, //flower white
-    0, //flower white big
-    0, //flower white high
-    0, //flower yellow
-    0, //flower yellow big
-    0, //flower yellow high
-    0, //grass translucent
-    0, //grass translucent big dark
-    0, //grass01
-    0, //grass02
-    0, //grass03
-    0, //grass04
-    0, //high flower red
-    0, //high flower red big
-    0, //high flower white
-    0, //high flower white big
-    0, //high flower yellow
-    0, //high flower yellow big
-    0, //mushroom brown
-    0, //mushroom brown big
-    0, //mushroom red
-    0, //mushroom red big
-    0, //nettle
-    0, //nettle big
-    0, //nettle high
-    0, //shell
-    0, //shell small
-    0, //stone01
-    0, //stone01 grey
-    0, //stone02
-    0, //stone02 grey
-    0, //stone03
-    0, //stone03 grey
-    0, //stone04
-    0, //stone04 grey
-    0, //swamp calmus 01
-    0, //swamp calmus 02
-    0, //swamp calmus 03
-    0, //swampthing01
-    0, //swampthing02
-    0, //waterlily 1
-    0, //waterlily 2
-    0, //waterplant 1
-    0, //waterplant 2
-    0, //waterplant 3
-    0, //wreck
-    0  //wreck big
-};
-
         private static readonly byte[][] doodads_adk = new byte[][]
 {
     new byte[] { 0x74, 0xBE, 0x45, 0x7A }, //Chest
@@ -4248,58 +4322,6 @@ namespace DnG_AdK_Mapedit
     new byte[] { 0x01, 0xBD, 0x81, 0xA1 }, //__Highland Fog 02
     new byte[] { 0x10, 0xBD, 0x81, 0xA1 }, //Male Duck
     new byte[] { 0x11, 0xBD, 0x81, 0xA1 }  //Female Duck
-};
-
-        private static readonly int[] is_lifetime_adk = new int[]
-{
-    0, //Chest
-    0, //OpenChest
-    1, //Coal (endless)
-    1, //Iron (endless)
-    1, //Gold (endless)
-    1, //Granite (endless)
-    1, //Gemstones (few)
-    1, //Gemstones (medium)
-    1, //Gemstones (much)
-    1, //Gemstones (endless)
-    1, //Salt (few)
-    1, //Salt (medium)
-    1, //Salt (much)
-    1, //Salt (endless)
-    0, //--Snow Ice Floe 01 moving
-    0, //--Snow Ice Floe 01 static
-    0, //--Snow Ice Floe 02 static
-    0, //--Snow Ice Floe 03 static
-    0, //--Snow Ice Floe 04 static
-    0, //--Snow Ice Floe 05 static
-    0, //--Snow Ice Floe 06 moving
-    0, //--Snow Ice Floe 07 moving
-    0, //--Snow Ice Floe 08 moving
-    0, //--Snow Ice Floe 09 moving
-    0, //__Highland fern big
-    0, //__Highland fern miedium
-    0, //__Highland fern small
-    0, //__Highland nettle
-    0, //__Highland nettle big
-    0, //__Highland nettle high
-    0, //__Highland Edelweiss 1
-    0, //__Highland Edelweiss 2
-    0, //__Highland Edelweiss 3
-    0, //__Highland Snowdrop
-    0, //__Highland Crocus
-    0, //__Highland Foundling 1
-    0, //__Highland Foundling 2
-    0, //__Highland Foundling 3
-    0, //__Highland Underwater Foundling 1
-    0, //__Highland Underwater Foundling 2
-    0, //__Highland Underwater Foundling 3
-    0, //__Highland swamp calmus 01
-    0, //__Highland swamp calmus 02
-    0, //__Highland swamp calmus 03
-    0, //__Highland Fog 01
-    0, //__Highland Fog 02
-    0, //Male Duck
-    0  //Female Duck
 };
     }
 }
