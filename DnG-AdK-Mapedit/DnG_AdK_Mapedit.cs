@@ -491,13 +491,13 @@ namespace DnG_AdK_Mapedit
             Map_info_size.Text = "Map size: " + map_size_x.ToString() + "x" + map_size_y.ToString();
 
             //Update maximum positions
-            Harbour_position_X_input.Maximum = map_size_x;
-            Anchor_position_X_input.Maximum = map_size_x;
-            Cave_position_X_input.Maximum = map_size_x;
+            Harbour_position_X_input.Maximum = map_size_x - 1;
+            Anchor_position_X_input.Maximum = map_size_x - 1;
+            Cave_position_X_input.Maximum = map_size_x - 1;
 
-            Harbour_position_Y_input.Maximum = map_size_y;
-            Anchor_position_Y_input.Maximum = map_size_y;
-            Cave_position_Y_input.Maximum = map_size_y;
+            Harbour_position_Y_input.Maximum = map_size_y - 1;
+            Anchor_position_Y_input.Maximum = map_size_y - 1;
+            Cave_position_Y_input.Maximum = map_size_y - 1;
 
             UpdateResources(current_byte, DnG_map);
         }
@@ -2800,7 +2800,7 @@ namespace DnG_AdK_Mapedit
                                     if (source_type != target_type)
                                     {
                                         // Read coordinates directly from stream at relative offsets
-                                        adk_memory_stream.Position = deposit_start + 52;
+                                        adk_memory_stream.Position = deposit_start + 48;
                                         byte[] coord_buffer = new byte[8];
                                         adk_memory_stream.Read(coord_buffer, 0, 8);
 
@@ -2808,29 +2808,24 @@ namespace DnG_AdK_Mapedit
                                         int pos_y = BitConverter.ToInt32(coord_buffer, 4);
 
                                         // Calculate grid state offset
-                                        int gridstates_index = pos_x + (pos_y * map_size_x);
-                                        int target_byte = gridstates_beginning + (gridstates_index * 4);
+                                        int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4;
 
                                         // Read existing state byte
                                         adk_memory_stream.Position = target_byte;
-                                        int currentFlag = adk_memory_stream.ReadByte();
-
-                                        if (currentFlag != -1)
+                                        int flag_int = adk_memory_stream.ReadByte();
+                                        byte flag_byte = (byte)flag_int;
+;
+                                        if (target_type == 1)
                                         {
-                                            byte flagByte = (byte)currentFlag;
-
-                                            if (target_type == 1)
-                                            {
-                                                flagByte |= 0x01;  // Set is_blocked flag
-                                            }
-                                            else
-                                            {
-                                                flagByte &= 0xFE;  // Clear is_blocked flag
-                                            }
-
-                                            adk_memory_stream.Position = target_byte;
-                                            adk_memory_stream.WriteByte(flagByte);
+                                            flag_byte |= 0x01;  // Set is_blocked flag
                                         }
+                                        else
+                                        {
+                                            flag_byte &= 0xFE;  // Clear is_blocked flag
+                                        }
+
+                                        adk_memory_stream.Position = target_byte;
+                                        adk_memory_stream.WriteByte(flag_byte);
                                     }
                                 }
                             }
@@ -2855,12 +2850,76 @@ namespace DnG_AdK_Mapedit
                                     ReplaceStreamBytes(adk_memory_stream, animal_start, 4, target, 0, 4);
                                 }
                             }
+                            continue;
                         }
+
+                        //Blocking doodads
+                        if (source_type == 3)
+                        {
+                            for (int i = 0; i < blocking_doodads_amount; i++)
+                            {
+                                //Skip doodads amount
+                                int blocking_doodad_start = blocking_doodads_beginning + (i * 56) + 4;
+
+                                // Read type buffer directly from stream
+                                adk_memory_stream.Position = blocking_doodad_start;
+                                byte[] type_buffer = new byte[4];
+                                adk_memory_stream.Read(type_buffer, 0, 4);
+
+                                if (source == BitConverter.ToInt32(type_buffer, 0))
+                                {
+                                    ReplaceStreamBytes(adk_memory_stream, blocking_doodad_start, 4, target, 0, 4);
+                                }
+                            }
+                            continue;
+                        }
+
+                        //Ambients
+                        if (source_type == 4)
+                        {
+                            for (int i = 0; i < ambients_amount; i++)
+                            {
+                                //Skip ambients amount
+                                int ambient_start = ambients_beginning + (i * 24) + 4;
+
+                                // Read type buffer directly from stream
+                                adk_memory_stream.Position = ambient_start;
+                                byte[] type_buffer = new byte[4];
+                                adk_memory_stream.Read(type_buffer, 0, 4);
+
+                                if (source == BitConverter.ToInt32(type_buffer, 0))
+                                {
+                                    ReplaceStreamBytes(adk_memory_stream, ambient_start, 4, target, 0, 4);
+                                }
+                            }
+                            continue;
+                        }
+
                     }
                     //Source and target types are not equal
                     else
                     {
+                        //Extraction
 
+                        //Deposits
+
+                        //Animals
+
+                        //Blocking doodads
+
+                        //Ambients
+
+                        //Writing
+
+                        //Deposits
+
+                        //Animals
+
+                        //Blocking doodads
+
+                        //Ambients
+
+                        //Caves
                     }
                 }
             }
@@ -2902,10 +2961,10 @@ namespace DnG_AdK_Mapedit
                         int pos = start + 4 + (i * stride);
                         adk_memory_stream.Position = pos;
 
-                        byte[] idBuf = new byte[4];
-                        adk_memory_stream.Read(idBuf, 0, 4);
+                        byte[] type_buffer = new byte[4];
+                        adk_memory_stream.Read(type_buffer, 0, 4);
 
-                        if (BitConverter.ToInt32(idBuf, 0) == source_type)
+                        if (BitConverter.ToInt32(type_buffer, 0) == source_type)
                         {
                             ReplaceStreamBytes(adk_memory_stream, pos, 4, target_type, 0, 4);
                         }
@@ -2923,10 +2982,10 @@ namespace DnG_AdK_Mapedit
                     int pos = srcStart + 4 + (i * srcStride);
 
                     adk_memory_stream.Position = pos;
-                    byte[] idBuf = new byte[4];
-                    adk_memory_stream.Read(idBuf, 0, 4);
+                    byte[] type_buffer = new byte[4];
+                    adk_memory_stream.Read(type_buffer, 0, 4);
 
-                    if (BitConverter.ToInt32(idBuf, 0) != source_type) continue;
+                    if (BitConverter.ToInt32(type_buffer, 0) != source_type) continue;
 
                     // Extract 52-byte payload
                     byte[] payload = new byte[52];
