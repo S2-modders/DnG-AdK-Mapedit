@@ -3111,7 +3111,78 @@ namespace DnG_AdK_Mapedit
                         //Deposits
                         if (target_type <= 1)
                         {
+                            foreach(var deposit in extracted_objects)
+                            {
+                                if (!logical_grid_blocking[deposit.pos_x, deposit.pos_y])
+                                {
+                                    MemoryStream deposit_stream = new MemoryStream();
+                                    using (BinaryWriter w = new BinaryWriter(deposit_stream))
+                                    {
+                                        w.Write(target);
+                                        w.Write(new byte[] {
+    0x01, 0x00, 0x00, 0x00, 0x39, 0x9D, 0xDB, 0x95,
+    0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00
+});
+                                        //ID
+                                        w.Write(deposit.ID);
+                                        w.Write(new byte[] {
+    0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54,
+    0x0D, 0x00, 0x00, 0x00
+});
+                                        //Logical X
+                                        w.Write(deposit.pos_x);
+                                        //Logical Y
+                                        w.Write(deposit.pos_y);
+                                        w.Write(new byte[] {
+    0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5,
+    0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
+    0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00
+});
+                                        //Detailed X
+                                        if (deposit.pos_y % 2 == 0)
+                                        {
+                                            w.Write(deposit.pos_x * 4);
+                                        }
+                                        else
+                                        {
+                                            w.Write(deposit.pos_x * 4 + 2);
+                                        }
+                                        //Detailed Y
+                                        w.Write(deposit.pos_y * 4);
+                                        w.Write(new byte[] { 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF });
+                                    }
 
+                                    // Calculate grid state offset
+                                    int target_byte = gridstates_beginning + (deposit.pos_x + deposit.pos_y * map_size_x) * 4;
+
+                                    //Byte 1
+                                    adk_memory_stream.Position = target_byte;
+                                    int flag_int = adk_memory_stream.ReadByte();
+                                    byte flag_byte = (byte)flag_int;
+
+                                    flag_byte |= 0x80; //Set has_deposit flag (0x80)
+                                    if (target_type == 1)
+                                    {
+                                        flag_byte |= 0x01;  // Set is_blocked flag (0x01)
+                                    }
+
+                                    adk_memory_stream.Position = target_byte;
+                                    adk_memory_stream.WriteByte(flag_byte);
+
+                                    ReplaceStreamBytes(adk_memory_stream, deposits_beginning + 4, 0, deposit_stream.ToArray(), 0, -1);
+                                    deposits_amount++;
+
+                                    //Shift other arrays
+                                    animals_beginning += 108;
+                                    doodads_beginning += 108;
+                                    lifetime_doodads_beginning += 108;
+                                    blocking_doodads_beginning += 108;
+                                    ambients_beginning += 108;
+                                    caves_beginning += 108;
+                                }
+                            }
                         }
                         else
                         {
