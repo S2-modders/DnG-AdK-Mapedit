@@ -2810,18 +2810,19 @@ namespace DnG_AdK_Mapedit
                                         // Calculate grid state offset
                                         int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4;
 
-                                        // Read existing state byte
+                                        //Byte 1
                                         adk_memory_stream.Position = target_byte;
                                         int flag_int = adk_memory_stream.ReadByte();
                                         byte flag_byte = (byte)flag_int;
-;
+
                                         if (target_type == 1)
                                         {
-                                            flag_byte |= 0x01;  // Set is_blocked flag
+                                            flag_byte |= 0x01;  // Set is_blocked flag (0x01)
                                         }
                                         else
                                         {
-                                            flag_byte &= 0xFE;  // Clear is_blocked flag
+                                            //Add a check for blocking textures underneath
+                                            flag_byte &= 0xFE;  // Clear is_blocked flag (0x01)
                                         }
 
                                         adk_memory_stream.Position = target_byte;
@@ -2900,26 +2901,244 @@ namespace DnG_AdK_Mapedit
                     else
                     {
                         //Extraction
+                        List<(int pos_x, int pos_y, byte[] ID)> extracted_objects = new List<(int, int, byte[])>();
 
                         //Deposits
+                        if(source_type <= 1)
+                        {
+                            for (int i = deposits_amount - 1; i >= 0; i--)
+                            {
+                                //Skip deposits amount
+                                int deposit_start = deposits_beginning + (i * 108) + 4;
 
-                        //Animals
+                                // Read type buffer directly from stream
+                                adk_memory_stream.Position = deposit_start;
+                                byte[] type_buffer = new byte[4];
+                                adk_memory_stream.Read(type_buffer, 0, 4);
 
-                        //Blocking doodads
+                                if (source == BitConverter.ToInt32(type_buffer, 0))
+                                {
+                                    // Read coordinates directly from stream at relative offsets
+                                    adk_memory_stream.Position = deposit_start + 48;
+                                    byte[] temp_buffer = new byte[8];
+                                    adk_memory_stream.Read(temp_buffer, 0, 8);
 
-                        //Ambients
+                                    int pos_x = BitConverter.ToInt32(temp_buffer, 0);
+                                    int pos_y = BitConverter.ToInt32(temp_buffer, 4);
+
+                                    // Calculate grid state offset
+                                    int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4;
+
+                                    //Byte 1
+                                    adk_memory_stream.Position = target_byte;
+                                    int flag_int = adk_memory_stream.ReadByte();
+                                    byte flag_byte = (byte)flag_int;
+
+                                    flag_byte &= 0x7F; //Clear has_deposit flag (0x80)
+                                    //Add a check for blocking textures underneath
+                                    if (source_type == 1)
+                                    {
+                                        flag_byte &= 0xFE;  // Clear is_blocked flag (0x01)
+                                    }
+
+                                    adk_memory_stream.Position = target_byte;
+                                    adk_memory_stream.WriteByte(flag_byte);
+
+                                    //Read ID
+                                    adk_memory_stream.Position = deposit_start + 28;
+                                    adk_memory_stream.Read(temp_buffer, 0, 8);
+
+                                    //Remove the deposit (Insert nothing)
+                                    ReplaceStreamBytes(adk_memory_stream, deposit_start, 108, temp_buffer, 0, 0);
+                                    extracted_objects.Add((pos_x, pos_y, (byte[])temp_buffer.Clone()));
+                                    logical_grid_blocking[pos_x, pos_y] = false;
+                                    deposits_amount--;
+
+                                    //Shift other arrays
+                                    animals_beginning -= 108;
+                                    doodads_beginning -= 108;
+                                    lifetime_doodads_beginning -= 108;
+                                    blocking_doodads_beginning -= 108;
+                                    ambients_beginning -= 108;
+                                    caves_beginning -= 108;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            switch (source_type)
+                            {
+                                //Animals
+                                case 2:
+                                    {
+                                        for (int i = animals_amount - 1; i >= 0; i--)
+                                        {
+                                            //Skip animals amount
+                                            int animal_start = animals_beginning + (i * 244) + 4;
+
+                                            // Read type buffer directly from stream
+                                            adk_memory_stream.Position = animal_start;
+                                            byte[] type_buffer = new byte[4];
+                                            adk_memory_stream.Read(type_buffer, 0, 4);
+
+                                            if (source == BitConverter.ToInt32(type_buffer, 0))
+                                            {
+                                                // Read coordinates directly from stream at relative offsets
+                                                adk_memory_stream.Position = animal_start + 52;
+                                                byte[] temp_buffer = new byte[8];
+                                                adk_memory_stream.Read(temp_buffer, 0, 8);
+
+                                                int pos_x = BitConverter.ToInt32(temp_buffer, 0);
+                                                int pos_y = BitConverter.ToInt32(temp_buffer, 4);
+
+                                                //Read ID
+                                                adk_memory_stream.Position = animal_start + 28;
+                                                adk_memory_stream.Read(temp_buffer, 0, 8);
+
+                                                //Remove the animal (Insert nothing)
+                                                ReplaceStreamBytes(adk_memory_stream, animal_start, 244, temp_buffer, 0, 0);
+                                                extracted_objects.Add((pos_x, pos_y, temp_buffer));
+                                                logical_grid_animals[pos_x, pos_y] = false;
+                                                animals_amount--;
+
+                                                //Shift other arrays
+                                                doodads_beginning -= 244;
+                                                lifetime_doodads_beginning -= 244;
+                                                blocking_doodads_beginning -= 244;
+                                                ambients_beginning -= 244;
+                                                caves_beginning -= 244;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                //Blocking doodads
+                                case 3:
+                                    {
+                                        for (int i = blocking_doodads_amount - 1; i >= 0; i--)
+                                        {
+                                            //Skip blocking doodads amount
+                                            int blocking_doodad_start = blocking_doodads_beginning + (i * 56) + 4;
+
+                                            // Read type buffer directly from stream
+                                            adk_memory_stream.Position = blocking_doodad_start;
+                                            byte[] type_buffer = new byte[4];
+                                            adk_memory_stream.Read(type_buffer, 0, 4);
+
+                                            if (source == BitConverter.ToInt32(type_buffer, 0))
+                                            {
+                                                // Read coordinates directly from stream at relative offsets
+                                                adk_memory_stream.Position = blocking_doodad_start + 40;
+                                                byte[] temp_buffer = new byte[8];
+                                                adk_memory_stream.Read(temp_buffer, 0, 8);
+
+                                                int pos_x = BitConverter.ToInt32(temp_buffer, 0) / 4;
+                                                int pos_y = BitConverter.ToInt32(temp_buffer, 4) / 4;
+
+                                                // Calculate grid state offset
+                                                int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
+
+                                                //Byte 2
+                                                adk_memory_stream.Position = target_byte;
+                                                int flag_int = adk_memory_stream.ReadByte();
+                                                byte flag_byte = (byte)flag_int;
+
+                                                flag_byte &= 0xFB; //Clear is_large_doodad flag (0x04)
+
+                                                adk_memory_stream.Position = target_byte;
+                                                adk_memory_stream.WriteByte(flag_byte);
+
+                                                //Read ID
+                                                adk_memory_stream.Position = blocking_doodad_start + 20;
+                                                adk_memory_stream.Read(temp_buffer, 0, 8);
+
+                                                //Remove the blocking doodad (Insert nothing)
+                                                ReplaceStreamBytes(adk_memory_stream, blocking_doodad_start, 56, temp_buffer, 0, 0);
+                                                extracted_objects.Add((pos_x, pos_y, (byte[])temp_buffer.Clone()));
+                                                logical_grid_blocking[pos_x, pos_y] = false;
+                                                blocking_doodads_amount--;
+
+                                                //Shift other arrays
+                                                ambients_beginning -= 56;
+                                                caves_beginning -= 56;
+                                            }
+                                        }
+                                        break;
+                                    }
+                                //Ambients
+                                case 4:
+                                    {
+                                        for (int i = ambients_amount - 1; i >= 0; i--)
+                                        {
+                                            //Skip ambients amount
+                                            int ambient_start = ambients_beginning + (i * 24) + 4;
+
+                                            // Read type buffer directly from stream
+                                            adk_memory_stream.Position = ambient_start;
+                                            byte[] type_buffer = new byte[4];
+                                            adk_memory_stream.Read(type_buffer, 0, 4);
+
+                                            if (source == BitConverter.ToInt32(type_buffer, 0))
+                                            {
+                                                // Read coordinates directly from stream at relative offsets
+                                                adk_memory_stream.Position = ambient_start + 16;
+                                                byte[] temp_buffer = new byte[8];
+                                                adk_memory_stream.Read(temp_buffer, 0, 8);
+
+                                                int pos_x = BitConverter.ToInt32(temp_buffer, 0);
+                                                int pos_y = BitConverter.ToInt32(temp_buffer, 4);
+
+                                                //Generate a unique ID (ambients don't need one)
+                                                Array.Copy(BitConverter.GetBytes(GenerateUniqueID()), temp_buffer, 4);
+                                                Array.Clear(temp_buffer, 4, 4);
+
+                                                //Remove the ambient (Insert nothing)
+                                                ReplaceStreamBytes(adk_memory_stream, ambient_start, 24, temp_buffer, 0, 0);
+                                                extracted_objects.Add((pos_x, pos_y, (byte[])temp_buffer.Clone()));
+                                                logical_grid_ambients[pos_x, pos_y] = false;
+                                                ambients_amount--;
+
+                                                //Shift other arrays
+                                                caves_beginning -= 24;
+                                            }
+                                        }
+                                        break;
+                                    }
+                            }
+                        }
 
                         //Writing
 
                         //Deposits
+                        if (target_type <= 1)
+                        {
 
-                        //Animals
-
-                        //Blocking doodads
-
-                        //Ambients
-
-                        //Caves
+                        }
+                        else
+                        {
+                            switch (target_type)
+                            {
+                                //Animals
+                                case 2:
+                                    {
+                                        break;
+                                    }
+                                //Blocking doodads
+                                case 3:
+                                    {
+                                        break;
+                                    }
+                                //Ambients
+                                case 4:
+                                    {
+                                        break;
+                                    }
+                                //Caves
+                                case 5:
+                                    {
+                                        break;
+                                    }
+                            }
+                        }
                     }
                 }
             }
