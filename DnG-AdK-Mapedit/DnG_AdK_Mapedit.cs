@@ -301,7 +301,7 @@ namespace DnG_AdK_Mapedit
                             }
                             File.Move(sourceFileName, destinationFileName);
 
-                            
+
                             //Clean up the uncompressed temporary export file
                             string tempFileName = Path.Combine(
                                 Path.GetDirectoryName(sourceFileName) ?? "",
@@ -1974,7 +1974,7 @@ namespace DnG_AdK_Mapedit
 
                         destinationFileName = Path.Combine(directory, $"{baseFileName}{suffix}{extension}");
                     }
-                    
+
                     DnG = false;
                     Compress = true;
                     sourceFileName = tempFile;
@@ -2717,21 +2717,22 @@ namespace DnG_AdK_Mapedit
             bool[,] logical_grid_ambients = new bool[map_size_x, map_size_y];
 
             adk_byte_array = adk_memory_stream.ToArray();
+            //Add 4 bytes to skip amounts
             if (Swap_list.Count > 0)
             {
                 //Deposits
                 for (int i = 0; i < deposits_amount; i++)
                 {
-                    int pos_x = BitConverter.ToInt32(adk_byte_array, deposits_beginning + (i * 108) + 48);
-                    int pos_y = BitConverter.ToInt32(adk_byte_array, deposits_beginning + (i * 108) + 52);
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, deposits_beginning + 4 + (i * 108) + 48);
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, deposits_beginning + 4 + (i * 108) + 52);
 
                     logical_grid_blocking[pos_x, pos_y] = true;
                 }
                 //Animals
                 for (int i = 0; i < animals_amount; i++)
                 {
-                    int pos_x = BitConverter.ToInt32(adk_byte_array, animals_beginning + (i * 244) + 52);
-                    int pos_y = BitConverter.ToInt32(adk_byte_array, animals_beginning + (i * 244) + 56);
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, animals_beginning + 4 + (i * 244) + 52);
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, animals_beginning + 4 + (i * 244) + 56);
 
                     logical_grid_animals[pos_x, pos_y] = true;
                 }
@@ -2739,16 +2740,16 @@ namespace DnG_AdK_Mapedit
                 for (int i = 0; i < blocking_doodads_amount; i++)
                 {
                     //Removing the decimal component is an intended behaviour
-                    int pos_x = BitConverter.ToInt32(adk_byte_array, blocking_doodads_beginning + (i * 56) + 48) / 4;
-                    int pos_y = BitConverter.ToInt32(adk_byte_array, blocking_doodads_beginning + (i * 56) + 52) / 4;
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, blocking_doodads_beginning + 4 + (i * 56) + 48) / 4;
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, blocking_doodads_beginning + 4 + (i * 56) + 52) / 4;
 
                     logical_grid_blocking[pos_x, pos_y] = true;
                 }
                 //Ambients
                 for (int i = 0; i < ambients_amount; i++)
                 {
-                    int pos_x = BitConverter.ToInt32(adk_byte_array, ambients_beginning + (i * 24) + 16);
-                    int pos_y = BitConverter.ToInt32(adk_byte_array, ambients_beginning + (i * 24) + 20);
+                    int pos_x = BitConverter.ToInt32(adk_byte_array, ambients_beginning + 4 + (i * 24) + 16);
+                    int pos_y = BitConverter.ToInt32(adk_byte_array, ambients_beginning + 4 + (i * 24) + 20);
 
                     logical_grid_ambients[pos_x, pos_y] = true;
                 }
@@ -2825,7 +2826,7 @@ namespace DnG_AdK_Mapedit
                             }
                             continue;
                         }
-                        
+
                         //Animals
                         if (source_type == 2)
                         {
@@ -2897,7 +2898,7 @@ namespace DnG_AdK_Mapedit
                         List<(int pos_x, int pos_y, byte[] ID)> extracted_objects = new List<(int, int, byte[])>();
 
                         //Deposits
-                        if(source_type <= 1)
+                        if (source_type <= 1)
                         {
                             for (int i = deposits_amount - 1; i >= 0; i--)
                             {
@@ -2990,7 +2991,7 @@ namespace DnG_AdK_Mapedit
 
                                                 //Remove the animal (Insert nothing)
                                                 ReplaceStreamBytes(adk_memory_stream, animal_start, 244, temp_buffer, 0, 0);
-                                                extracted_objects.Add((pos_x, pos_y, temp_buffer));
+                                                extracted_objects.Add((pos_x, pos_y, (byte[])temp_buffer.Clone()));
                                                 logical_grid_animals[pos_x, pos_y] = false;
                                                 animals_amount--;
 
@@ -3020,7 +3021,7 @@ namespace DnG_AdK_Mapedit
                                             if (source == BitConverter.ToInt32(type_buffer, 0))
                                             {
                                                 // Read coordinates directly from stream at relative offsets
-                                                adk_memory_stream.Position = blocking_doodad_start + 40;
+                                                adk_memory_stream.Position = blocking_doodad_start + 48;
                                                 byte[] temp_buffer = new byte[8];
                                                 adk_memory_stream.Read(temp_buffer, 0, 8);
 
@@ -3106,77 +3107,77 @@ namespace DnG_AdK_Mapedit
                         {
                             foreach (var (pos_x, pos_y, ID) in extracted_objects)
                             {
-                                //if (!logical_grid_blocking[deposit.pos_x, deposit.pos_y])
-                                //{
-                                MemoryStream deposit_stream = new MemoryStream();
-                                using (BinaryWriter w = new BinaryWriter(deposit_stream))
+                                if (!logical_grid_blocking[pos_x, pos_y])
                                 {
-                                    w.Write(target);
-                                    w.Write(new byte[] {
+                                    MemoryStream deposit_stream = new MemoryStream();
+                                    using (BinaryWriter w = new BinaryWriter(deposit_stream))
+                                    {
+                                        w.Write(target);
+                                        w.Write(new byte[] {
     0x01, 0x00, 0x00, 0x00, 0x39, 0x9D, 0xDB, 0x95,
     0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00
 });
-                                    //ID
-                                    w.Write(ID);
-                                    w.Write(new byte[] {
+                                        //ID
+                                        w.Write(ID);
+                                        w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54,
     0x0D, 0x00, 0x00, 0x00
 });
-                                    //Logical X
-                                    w.Write(pos_x);
-                                    //Logical Y
-                                    w.Write(pos_y);
-                                    w.Write(new byte[] {
+                                        //Logical X
+                                        w.Write(pos_x);
+                                        //Logical Y
+                                        w.Write(pos_y);
+                                        w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5,
     0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
     0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00
 });
-                                    //Detailed X
-                                    if (pos_y % 2 == 0)
-                                    {
-                                        w.Write(pos_x * 4);
+                                        //Detailed X
+                                        if (pos_y % 2 == 0)
+                                        {
+                                            w.Write(pos_x * 4);
+                                        }
+                                        else
+                                        {
+                                            w.Write(pos_x * 4 + 2);
+                                        }
+                                        //Detailed Y
+                                        w.Write(pos_y * 4);
+                                        w.Write(new byte[] { 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF });
                                     }
-                                    else
+
+                                    // Calculate grid state offset
+                                    int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4;
+
+                                    //Byte 1
+                                    adk_memory_stream.Position = target_byte;
+                                    int flag_int = adk_memory_stream.ReadByte();
+                                    byte flag_byte = (byte)flag_int;
+
+                                    flag_byte |= 0x80; //Set has_deposit flag (0x80)
+                                    if (target_type == 1)
                                     {
-                                        w.Write(pos_x * 4 + 2);
+                                        flag_byte |= 0x01;  // Set is_blocked flag (0x01)
                                     }
-                                    //Detailed Y
-                                    w.Write(pos_y * 4);
-                                    w.Write(new byte[] { 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF });
+
+                                    adk_memory_stream.Position = target_byte;
+                                    adk_memory_stream.WriteByte(flag_byte);
+
+                                    ReplaceStreamBytes(adk_memory_stream, deposits_beginning + 4, 0, deposit_stream.ToArray(), 0, -1);
+                                    deposits_amount++;
+
+                                    logical_grid_blocking[pos_x, pos_y] = true;
+
+                                    //Shift other arrays
+                                    animals_beginning += 108;
+                                    doodads_beginning += 108;
+                                    lifetime_doodads_beginning += 108;
+                                    blocking_doodads_beginning += 108;
+                                    ambients_beginning += 108;
+                                    caves_beginning += 108;
                                 }
-
-                                // Calculate grid state offset
-                                int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4;
-
-                                //Byte 1
-                                adk_memory_stream.Position = target_byte;
-                                int flag_int = adk_memory_stream.ReadByte();
-                                byte flag_byte = (byte)flag_int;
-
-                                flag_byte |= 0x80; //Set has_deposit flag (0x80)
-                                if (target_type == 1)
-                                {
-                                    flag_byte |= 0x01;  // Set is_blocked flag (0x01)
-                                }
-
-                                adk_memory_stream.Position = target_byte;
-                                adk_memory_stream.WriteByte(flag_byte);
-
-                                ReplaceStreamBytes(adk_memory_stream, deposits_beginning + 4, 0, deposit_stream.ToArray(), 0, -1);
-                                deposits_amount++;
-
-                                logical_grid_blocking[pos_x, pos_y] = true;
-
-                                //Shift other arrays
-                                animals_beginning += 108;
-                                doodads_beginning += 108;
-                                lifetime_doodads_beginning += 108;
-                                blocking_doodads_beginning += 108;
-                                ambients_beginning += 108;
-                                caves_beginning += 108;
-                                //}
                             }
                         }
                         else
@@ -3188,27 +3189,27 @@ namespace DnG_AdK_Mapedit
                                     {
                                         foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
-                                            //if (!logical_grid_animals[animal.pos_x, animal.pos_y])
-                                            //{
-                                            MemoryStream animal_stream = new MemoryStream();
-                                            using (BinaryWriter w = new BinaryWriter(animal_stream))
+                                            if (!logical_grid_animals[pos_x, pos_y])
                                             {
-                                                w.Write(target);
-                                                w.Write(new byte[] {
+                                                MemoryStream animal_stream = new MemoryStream();
+                                                using (BinaryWriter w = new BinaryWriter(animal_stream))
+                                                {
+                                                    w.Write(target);
+                                                    w.Write(new byte[] {
     0x02, 0x00, 0x00, 0x00, 0xE4, 0x8A, 0x52, 0x6A,
     0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00
 });
-                                                w.Write(ID);
-                                                w.Write(new byte[] {
+                                                    w.Write(ID);
+                                                    w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00
 });
-                                                //X
-                                                w.Write(pos_x);
-                                                //Y
-                                                w.Write(pos_y);
-                                                w.Write(new byte[] {
+                                                    //X
+                                                    w.Write(pos_x);
+                                                    //Y
+                                                    w.Write(pos_y);
+                                                    w.Write(new byte[] {
     0x01, 0x00, 0x00, 0x00, 0x77, 0x67, 0x5B, 0x0D,
     0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x93, 0xE4, 0x70, 0x1B, 0x0E, 0x00, 0x00, 0x00,
@@ -3217,25 +3218,25 @@ namespace DnG_AdK_Mapedit
     0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54,
     0x0D, 0x00, 0x00, 0x00
 });
-                                                //X
-                                                w.Write(pos_x);
-                                                //Y
-                                                w.Write(pos_y);
-                                                w.Write(new byte[] {
+                                                    //X
+                                                    w.Write(pos_x);
+                                                    //Y
+                                                    w.Write(pos_y);
+                                                    w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xAE, 0x02, 0x54, 0x70,
     0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00
 });
-                                                //X
-                                                w.Write(pos_x);
-                                                //Y
-                                                w.Write(pos_y);
-                                                w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
-                                                //X
-                                                w.Write(pos_x);
-                                                //Y
-                                                w.Write(pos_y);
-                                                w.Write(new byte[] {
+                                                    //X
+                                                    w.Write(pos_x);
+                                                    //Y
+                                                    w.Write(pos_y);
+                                                    w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
+                                                    //X
+                                                    w.Write(pos_x);
+                                                    //Y
+                                                    w.Write(pos_y);
+                                                    w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54,
     0x0D, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
     0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00,
@@ -3246,20 +3247,20 @@ namespace DnG_AdK_Mapedit
     0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00,
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
 });
+                                                }
+
+                                                ReplaceStreamBytes(adk_memory_stream, animals_beginning + 4, 0, animal_stream.ToArray(), 0, -1);
+                                                animals_amount++;
+
+                                                logical_grid_animals[pos_x, pos_y] = true;
+
+                                                //Shift other arrays
+                                                doodads_beginning += 244;
+                                                lifetime_doodads_beginning += 244;
+                                                blocking_doodads_beginning += 244;
+                                                ambients_beginning += 244;
+                                                caves_beginning += 244;
                                             }
-
-                                            ReplaceStreamBytes(adk_memory_stream, animals_beginning + 4, 0, animal_stream.ToArray(), 0, -1);
-                                            animals_amount++;
-
-                                            logical_grid_animals[pos_x, pos_y] = true;
-
-                                            //Shift other arrays
-                                            doodads_beginning += 244;
-                                            lifetime_doodads_beginning += 244;
-                                            blocking_doodads_beginning += 244;
-                                            ambients_beginning += 244;
-                                            caves_beginning += 244;
-                                            //}
                                         }
                                         break;
                                     }
@@ -3268,50 +3269,50 @@ namespace DnG_AdK_Mapedit
                                     {
                                         foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
-                                            //if (!logical_grid_blocking[blocking_doodad.pos_x, blocking_doodad.pos_y])
-                                            //{
-                                            MemoryStream blocking_doodad_stream = new MemoryStream();
-                                            using (BinaryWriter w = new BinaryWriter(blocking_doodad_stream))
+                                            if (!logical_grid_blocking[pos_x, pos_y])
                                             {
-                                                w.Write(target);
-                                                w.Write(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x5B, 0x76, 0x5C, 0xEF, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
-                                                w.Write(ID);
-                                                w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00 });
-                                                //Detailed X
-                                                if (pos_y % 2 == 0)
+                                                MemoryStream blocking_doodad_stream = new MemoryStream();
+                                                using (BinaryWriter w = new BinaryWriter(blocking_doodad_stream))
                                                 {
-                                                    w.Write(pos_x * 4);
+                                                    w.Write(target);
+                                                    w.Write(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x5B, 0x76, 0x5C, 0xEF, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
+                                                    w.Write(ID);
+                                                    w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00 });
+                                                    //Detailed X
+                                                    if (pos_y % 2 == 0)
+                                                    {
+                                                        w.Write(pos_x * 4);
+                                                    }
+                                                    else
+                                                    {
+                                                        w.Write(pos_x * 4 + 2);
+                                                    }
+                                                    //Detailed Y
+                                                    w.Write(pos_y * 4);
                                                 }
-                                                else
-                                                {
-                                                    w.Write(pos_x * 4 + 2);
-                                                }
-                                                //Detailed Y
-                                                w.Write(pos_y * 4);
+
+                                                // Calculate grid state offset
+                                                int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
+
+                                                //Byte 2
+                                                adk_memory_stream.Position = target_byte;
+                                                int flag_int = adk_memory_stream.ReadByte();
+                                                byte flag_byte = (byte)flag_int;
+
+                                                flag_byte |= 0x04; //Set is_large_doodad flag (0x04)
+
+                                                adk_memory_stream.Position = target_byte;
+                                                adk_memory_stream.WriteByte(flag_byte);
+
+                                                ReplaceStreamBytes(adk_memory_stream, blocking_doodads_beginning + 4, 0, blocking_doodad_stream.ToArray(), 0, -1);
+                                                blocking_doodads_amount++;
+
+                                                logical_grid_blocking[pos_x, pos_y] = true;
+
+                                                //Shift other arrays
+                                                ambients_beginning += 56;
+                                                caves_beginning += 56;
                                             }
-
-                                            // Calculate grid state offset
-                                            int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
-
-                                            //Byte 2
-                                            adk_memory_stream.Position = target_byte;
-                                            int flag_int = adk_memory_stream.ReadByte();
-                                            byte flag_byte = (byte)flag_int;
-
-                                            flag_byte |= 0x04; //Set is_large_doodad flag (0x04)
-
-                                            adk_memory_stream.Position = target_byte;
-                                            adk_memory_stream.WriteByte(flag_byte);
-
-                                            ReplaceStreamBytes(adk_memory_stream, blocking_doodads_beginning + 4, 0, blocking_doodad_stream.ToArray(), 0, -1);
-                                            blocking_doodads_amount++;
-
-                                            logical_grid_blocking[pos_x, pos_y] = true;
-
-                                            //Shift other arrays
-                                            ambients_beginning += 56;
-                                            caves_beginning += 56;
-                                            //}
                                         }
                                         break;
                                     }
@@ -3320,27 +3321,27 @@ namespace DnG_AdK_Mapedit
                                     {
                                         foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
-                                            //if (!logical_grid_ambients[ambient.pos_x, ambient.pos_y])
-                                            //{
-                                            MemoryStream ambient_stream = new MemoryStream();
-                                            using (BinaryWriter w = new BinaryWriter(ambient_stream))
+                                            if (!logical_grid_ambients[pos_x, pos_y])
                                             {
-                                                w.Write(target);
-                                                w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
-                                                //X
-                                                w.Write(pos_x);
-                                                //Y
-                                                w.Write(pos_y);
+                                                MemoryStream ambient_stream = new MemoryStream();
+                                                using (BinaryWriter w = new BinaryWriter(ambient_stream))
+                                                {
+                                                    w.Write(target);
+                                                    w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
+                                                    //X
+                                                    w.Write(pos_x);
+                                                    //Y
+                                                    w.Write(pos_y);
+                                                }
+
+                                                ReplaceStreamBytes(adk_memory_stream, ambients_beginning + 4, 0, ambient_stream.ToArray(), 0, -1);
+                                                ambients_amount++;
+
+                                                logical_grid_ambients[pos_x, pos_y] = true;
+
+                                                //Shift other arrays
+                                                caves_beginning += 24;
                                             }
-
-                                            ReplaceStreamBytes(adk_memory_stream, ambients_beginning + 4, 0, ambient_stream.ToArray(), 0, -1);
-                                            ambients_amount++;
-
-                                            logical_grid_ambients[pos_x, pos_y] = true;
-
-                                            //Shift other arrays
-                                            caves_beginning += 24;
-                                            //}
                                         }
                                         break;
                                     }
@@ -3349,40 +3350,40 @@ namespace DnG_AdK_Mapedit
                                     {
                                         foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
-                                            //if (!logical_grid_blocking[cave.pos_x, cave.pos_y])
-                                            //{
-                                            MemoryStream cave_stream = new MemoryStream();
-                                            using (BinaryWriter w = new BinaryWriter(cave_stream))
+                                            if (!logical_grid_blocking[pos_x, pos_y])
                                             {
-                                                w.Write(target);
-                                                w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x74, 0x76, 0x80, 0x4A, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
-                                                w.Write(ID);
-                                                // Pattern cursor
-                                                w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
-                                                // X
-                                                w.Write(pos_x);
-                                                // Y
-                                                w.Write(pos_y);
+                                                MemoryStream cave_stream = new MemoryStream();
+                                                using (BinaryWriter w = new BinaryWriter(cave_stream))
+                                                {
+                                                    w.Write(target);
+                                                    w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x74, 0x76, 0x80, 0x4A, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
+                                                    w.Write(ID);
+                                                    // Pattern cursor
+                                                    w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
+                                                    // X
+                                                    w.Write(pos_x);
+                                                    // Y
+                                                    w.Write(pos_y);
+                                                }
+
+                                                // Calculate grid state offset
+                                                int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
+
+                                                //Byte 2
+                                                adk_memory_stream.Position = target_byte;
+                                                int flag_int = adk_memory_stream.ReadByte();
+                                                byte flag_byte = (byte)flag_int;
+
+                                                flag_byte |= 0x04; //Set is_large_doodad flag (0x04)
+
+                                                adk_memory_stream.Position = target_byte;
+                                                adk_memory_stream.WriteByte(flag_byte);
+
+                                                ReplaceStreamBytes(adk_memory_stream, caves_beginning + 4, 0, cave_stream.ToArray(), 0, -1);
+                                                caves_amount++;
+
+                                                logical_grid_blocking[pos_x, pos_y] = true;
                                             }
-
-                                            // Calculate grid state offset
-                                            int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
-
-                                            //Byte 2
-                                            adk_memory_stream.Position = target_byte;
-                                            int flag_int = adk_memory_stream.ReadByte();
-                                            byte flag_byte = (byte)flag_int;
-
-                                            flag_byte |= 0x04; //Set is_large_doodad flag (0x04)
-
-                                            adk_memory_stream.Position = target_byte;
-                                            adk_memory_stream.WriteByte(flag_byte);
-
-                                            ReplaceStreamBytes(adk_memory_stream, caves_beginning + 4, 0, cave_stream.ToArray(), 0, -1);
-                                            caves_amount++;
-
-                                            logical_grid_blocking[pos_x, pos_y] = true;
-                                            //}
                                         }
                                         break;
                                     }
