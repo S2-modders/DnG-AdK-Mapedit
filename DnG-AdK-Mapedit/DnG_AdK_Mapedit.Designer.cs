@@ -1259,10 +1259,10 @@
             this.Logical_grid_overwrite_text.AutoSize = true;
             this.Logical_grid_overwrite_text.Location = new System.Drawing.Point(7, 7);
             this.Logical_grid_overwrite_text.Name = "Logical_grid_overwrite_text";
-            this.Logical_grid_overwrite_text.Size = new System.Drawing.Size(932, 28);
+            this.Logical_grid_overwrite_text.Size = new System.Drawing.Size(835, 28);
             this.Logical_grid_overwrite_text.TabIndex = 0;
-            this.Logical_grid_overwrite_text.Text = "TO DO -> If a conflict occurs, the source object is deleted and the one already p" +
-    "resent is preserved.";
+            this.Logical_grid_overwrite_text.Text = "If a conflict occurs, the source object is deleted and the one already present is" +
+    " preserved.";
             // 
             // Small_doodads_tab
             // 
@@ -2483,7 +2483,7 @@
             "Black",
             "Pink",
             "Light Blue"});
-            this.Player_6_select.Location = new System.Drawing.Point(800, 341);
+            this.Player_6_select.Location = new System.Drawing.Point(800, 342);
             this.Player_6_select.Name = "Player_6_select";
             this.Player_6_select.Size = new System.Drawing.Size(394, 36);
             this.Player_6_select.TabIndex = 11;
@@ -2501,7 +2501,7 @@
             "Black",
             "Pink",
             "Light Blue"});
-            this.Player_5_select.Location = new System.Drawing.Point(402, 341);
+            this.Player_5_select.Location = new System.Drawing.Point(402, 342);
             this.Player_5_select.Name = "Player_5_select";
             this.Player_5_select.Size = new System.Drawing.Size(391, 36);
             this.Player_5_select.TabIndex = 10;
@@ -2519,7 +2519,7 @@
             "Black",
             "Pink",
             "Light Blue"});
-            this.Player_4_select.Location = new System.Drawing.Point(4, 341);
+            this.Player_4_select.Location = new System.Drawing.Point(4, 342);
             this.Player_4_select.Name = "Player_4_select";
             this.Player_4_select.Size = new System.Drawing.Size(391, 36);
             this.Player_4_select.TabIndex = 9;
@@ -2537,7 +2537,7 @@
             "Black",
             "Pink",
             "Light Blue"});
-            this.Player_3_select.Location = new System.Drawing.Point(800, 137);
+            this.Player_3_select.Location = new System.Drawing.Point(800, 135);
             this.Player_3_select.Name = "Player_3_select";
             this.Player_3_select.Size = new System.Drawing.Size(394, 36);
             this.Player_3_select.TabIndex = 8;
@@ -2555,7 +2555,7 @@
             "Black",
             "Pink",
             "Light Blue"});
-            this.Player_2_select.Location = new System.Drawing.Point(402, 137);
+            this.Player_2_select.Location = new System.Drawing.Point(402, 135);
             this.Player_2_select.Name = "Player_2_select";
             this.Player_2_select.Size = new System.Drawing.Size(391, 36);
             this.Player_2_select.TabIndex = 7;
@@ -2651,7 +2651,7 @@
             "Black",
             "Pink",
             "Light Blue"});
-            this.Player_1_select.Location = new System.Drawing.Point(4, 137);
+            this.Player_1_select.Location = new System.Drawing.Point(4, 135);
             this.Player_1_select.Name = "Player_1_select";
             this.Player_1_select.Size = new System.Drawing.Size(391, 36);
             this.Player_1_select.TabIndex = 6;
