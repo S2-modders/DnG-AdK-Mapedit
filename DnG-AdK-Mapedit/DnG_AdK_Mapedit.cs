@@ -14,9 +14,9 @@ namespace DnG_AdK_Mapedit
 {
     public partial class DnG_AdK_Mapedit : Form
     {
-        string TempFolder = Path.Combine(Path.GetTempPath(), "DnG-AdK-Mapedit/");
+        readonly string TempFolder = Path.Combine(Path.GetTempPath(), "DnG-AdK-Mapedit/");
         private string WorkingFileName => Path.Combine(TempFolder, "temp_" + Path.GetFileName(DnG_map_path.Text));
-        private string archiverPath => Path.Combine(TempFolder, "decryptor_s2.exe");
+        private string ArchiverPath => Path.Combine(TempFolder, "decryptor_s2.exe");
 
         // Keep a reference to the external process so it is not GC-collected
         private Process archiverProcess;
@@ -46,13 +46,13 @@ namespace DnG_AdK_Mapedit
 
         private const uint EmptyHex = 0xFFFFFFFF;
 
-        private List<(int tab, int from, int to)> Swap_list = new List<(int, int, int)>();
+        private readonly List<(int tab, int from, int to)> Swap_list = new List<(int, int, int)>();
 
-        private List<(int pos_x, int pos_y, int rotation, bool anchorage, int anchor_x, int anchor_y, int buoy_1_connection, int buoy_2_connection)> Harbours_list = new List<(int, int, int, bool, int, int, int, int)>();
+        private readonly List<(int pos_x, int pos_y, int rotation, bool anchorage, int anchor_x, int anchor_y, int buoy_1_connection, int buoy_2_connection)> Harbours_list = new List<(int, int, int, bool, int, int, int, int)>();
         // Flag to prevent UI updates from triggering save events
         private bool isUpdatingUI = false;
 
-        private List<(int pos_x, int pos_y, int type)> Caves_list = new List<(int, int, int)>();
+        private readonly List<(int pos_x, int pos_y, int type)> Caves_list = new List<(int, int, int)>();
 
         public DnG_AdK_Mapedit()
         {
@@ -171,12 +171,12 @@ namespace DnG_AdK_Mapedit
         void Archiver()
         {
             //Unpack the archiver executable to the temp path
-            if (!File.Exists(archiverPath))
+            if (!File.Exists(ArchiverPath))
             {
                 Assembly assembly = Assembly.GetExecutingAssembly();
                 using (Stream stream = assembly.GetManifestResourceStream("DnG_AdK_Mapedit.decryptor_s2.exe"))
                 {
-                    using (FileStream fileStream = new FileStream(archiverPath, FileMode.Create, FileAccess.Write))
+                    using (FileStream fileStream = new FileStream(ArchiverPath, FileMode.Create, FileAccess.Write))
                     {
                         stream.CopyTo(fileStream);
                     }
@@ -190,7 +190,7 @@ namespace DnG_AdK_Mapedit
             // decryptor sees the copied file in its current folder.
             // Store the process in a field so the GC won't collect it before it exits
             archiverProcess = new Process();
-            archiverProcess.StartInfo.FileName = archiverPath;
+            archiverProcess.StartInfo.FileName = ArchiverPath;
 
             if (Compress)
             {
@@ -257,9 +257,9 @@ namespace DnG_AdK_Mapedit
             {
                 File.Delete(WorkingFileName);
             }
-            if (File.Exists(archiverPath))
+            if (File.Exists(ArchiverPath))
             {
-                File.Delete(archiverPath);
+                File.Delete(ArchiverPath);
             }
         }
 
@@ -489,7 +489,7 @@ namespace DnG_AdK_Mapedit
             current_byte += 4;
             map_size_y = (int)BitConverter.ToUInt32(DnG_map, current_byte);
             current_byte += 4;
-            Map_info_size.Text = "Map size: " + map_size_x.ToString() + "x" + map_size_y.ToString();
+            Map_info_size.Text = "Map size: " + map_size_x.ToString() + "source_x" + map_size_y.ToString();
 
             //Update maximum positions
             Harbour_position_X_input.Maximum = map_size_x - 1;
@@ -518,7 +518,7 @@ namespace DnG_AdK_Mapedit
             }
 
             //Skip map size
-            int Heights_array_beginning = current_byte + 8;
+            //int heights_beginning = current_byte + 8;
 
             //Finding the textures array header in the map file
             current_byte = FindSequenceOffset(DnG_map, TexturesHeader, current_byte);
@@ -572,7 +572,7 @@ namespace DnG_AdK_Mapedit
                     //Map editor fails to remove invalid resources that are under the water.
                     //That causes the resource count to be different.
                     //Remove invalid resources that are under the water
-                    else if (!IsOnLand(DnG_map, Heights_array_beginning, j, map_size_x))
+                    else if (!IsOnLand(DnG_map, heights_beginning, j, map_size_x))
                     {
                         // Overwrite the resource amount (4 bytes) and type (4 bytes) for the current entry.
                         Array.Copy(Empty_hex_extended, 0, DnG_map, current_byte - 4, Empty_hex_extended.Length);
@@ -713,8 +713,8 @@ namespace DnG_AdK_Mapedit
                 case 0xEFBEADDE: // 1: rock big
                 case 0xFECAFECA: // 2: rock small
                 case 0xFFCAFECA: // 3: rocky earth
-                case 0x00CBFECA: // 4: rock stretched x
-                case 0x01CBFECA: // 5: rock stretched y
+                case 0x00CBFECA: // 4: rock stretched source_x
+                case 0x01CBFECA: // 5: rock stretched source_y
                 case 0x02CBFECA: // 6: rocky earth big
                 case 0x03CBFECA: // 7: rocky plants
                 case 0x04CBFECA: // 8: rocky earth dark
@@ -946,9 +946,7 @@ namespace DnG_AdK_Mapedit
             if (index != -1 && index < Swap_list_view.Items.Count - 1)
             {
                 // 1. Swap elements in the backend data list
-                var temp = Swap_list[index];
-                Swap_list[index] = Swap_list[index + 1];
-                Swap_list[index + 1] = temp;
+                (Swap_list[index + 1], Swap_list[index]) = (Swap_list[index], Swap_list[index + 1]);
 
                 // 2. Swap elements in the ListBox UI
                 object selectedItem = Swap_list_view.SelectedItem;
@@ -990,9 +988,7 @@ namespace DnG_AdK_Mapedit
             if (index > 0)
             {
                 // 1. Swap elements in the backend data list
-                var temp = Swap_list[index];
-                Swap_list[index] = Swap_list[index - 1];
-                Swap_list[index - 1] = temp;
+                (Swap_list[index - 1], Swap_list[index]) = (Swap_list[index], Swap_list[index - 1]);
 
                 // 2. Swap elements in the ListBox UI
                 object selectedItem = Swap_list_view.SelectedItem;
@@ -1056,19 +1052,19 @@ namespace DnG_AdK_Mapedit
                 Harbour_panel.Enabled = true;
 
                 // Load current selection from the list
-                var selectedHarbour = Harbours_list[Harbours_list_view.SelectedIndex];
+                var (pos_x, pos_y, rotation, anchorage, anchor_x, anchor_y, buoy_1_connection, buoy_2_connection) = Harbours_list[Harbours_list_view.SelectedIndex];
 
-                Harbour_position_X_input.Value = selectedHarbour.pos_x;
-                Harbour_position_Y_input.Value = selectedHarbour.pos_y;
-                Harbour_rotation_select.SelectedIndex = selectedHarbour.rotation;
+                Harbour_position_X_input.Value = pos_x;
+                Harbour_position_Y_input.Value = pos_y;
+                Harbour_rotation_select.SelectedIndex = rotation;
 
-                Harbour_anchor_checkbox.Checked = selectedHarbour.anchorage;
-                Harbour_anchor_panel.Enabled = selectedHarbour.anchorage;
+                Harbour_anchor_checkbox.Checked = anchorage;
+                Harbour_anchor_panel.Enabled = anchorage;
 
-                Anchor_position_X_input.Value = selectedHarbour.anchor_x;
-                Anchor_position_Y_input.Value = selectedHarbour.anchor_y;
-                Buoy_1_connection_select.SelectedIndex = selectedHarbour.buoy_1_connection;
-                Buoy_2_connection_select.SelectedIndex = selectedHarbour.buoy_2_connection;
+                Anchor_position_X_input.Value = anchor_x;
+                Anchor_position_Y_input.Value = anchor_y;
+                Buoy_1_connection_select.SelectedIndex = buoy_1_connection;
+                Buoy_2_connection_select.SelectedIndex = buoy_2_connection;
             }
             else
             {
@@ -1256,8 +1252,8 @@ namespace DnG_AdK_Mapedit
             int harbourIndex = (buoyDropdownIndex - 1) / 2;
             bool isBuoy1 = buoyDropdownIndex % 2 != 0;
 
-            var h = Harbours_list[harbourIndex];
-            return isBuoy1 ? h.buoy_1_connection : h.buoy_2_connection;
+            var (_, _, _, _, _, _, buoy_1_connection, buoy_2_connection) = Harbours_list[harbourIndex];
+            return isBuoy1 ? buoy_1_connection : buoy_2_connection;
         }
 
         // Helper to overwrite a specific buoy's connection in the background
@@ -1268,13 +1264,13 @@ namespace DnG_AdK_Mapedit
             int harbourIndex = (buoyDropdownIndex - 1) / 2;
             bool isBuoy1 = buoyDropdownIndex % 2 != 0;
 
-            var h = Harbours_list[harbourIndex];
+            var (pos_x, pos_y, rotation, anchorage, anchor_x, anchor_y, buoy_1_connection, buoy_2_connection) = Harbours_list[harbourIndex];
 
             // Rebuild and replace the tuple for that specific harbour
             if (isBuoy1)
-                Harbours_list[harbourIndex] = (h.pos_x, h.pos_y, h.rotation, h.anchorage, h.anchor_x, h.anchor_y, newTargetIndex, h.buoy_2_connection);
+                Harbours_list[harbourIndex] = (pos_x, pos_y, rotation, anchorage, anchor_x, anchor_y, newTargetIndex, buoy_2_connection);
             else
-                Harbours_list[harbourIndex] = (h.pos_x, h.pos_y, h.rotation, h.anchorage, h.anchor_x, h.anchor_y, h.buoy_1_connection, newTargetIndex);
+                Harbours_list[harbourIndex] = (pos_x, pos_y, rotation, anchorage, anchor_x, anchor_y, buoy_1_connection, newTargetIndex);
         }
 
         private void Caves_add_button_Click(object sender, EventArgs e)
@@ -1605,16 +1601,16 @@ namespace DnG_AdK_Mapedit
                             sw.WriteLine(Map_name_button.Text);
 
                             sw.WriteLine("[SWAPS]");
-                            foreach (var swap in Swap_list)
-                                sw.WriteLine($"{swap.tab},{swap.from},{swap.to}");
+                            foreach (var (tab, from, to) in Swap_list)
+                                sw.WriteLine($"{tab},{from},{to}");
 
                             sw.WriteLine("[HARBOURS]");
-                            foreach (var h in Harbours_list)
-                                sw.WriteLine($"{h.pos_x},{h.pos_y},{h.rotation},{h.anchorage},{h.anchor_x},{h.anchor_y},{h.buoy_1_connection},{h.buoy_2_connection}");
+                            foreach (var (pos_x, pos_y, rotation, anchorage, anchor_x, anchor_y, buoy_1_connection, buoy_2_connection) in Harbours_list)
+                                sw.WriteLine($"{pos_x},{pos_y},{rotation},{anchorage},{anchor_x},{anchor_y},{buoy_1_connection},{buoy_2_connection}");
 
                             sw.WriteLine("[CAVES]");
-                            foreach (var c in Caves_list)
-                                sw.WriteLine($"{c.pos_x},{c.pos_y},{c.type}");
+                            foreach (var (pos_x, pos_y, type) in Caves_list)
+                                sw.WriteLine($"{pos_x},{pos_y},{type}");
 
                             sw.WriteLine("[SACRIFICES]");
                             sw.WriteLine(GetCheckedIndices(Sacrifices_no_research_Bavarians));
@@ -1986,10 +1982,6 @@ namespace DnG_AdK_Mapedit
                     Archiver();
                 }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Map export failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
             finally
             {
                 Export_wait.Visible = false;
@@ -2202,7 +2194,7 @@ namespace DnG_AdK_Mapedit
             {
                 for (int i = 0; i < map_area; i++)
                 {
-                    // Column-first indexing (index increases down each column y, then moves to the next column x)
+                    // Column-first indexing (index increases down each column source_y, then moves to the next column source_x)
                     int x_logical = i / map_size_y;
                     int y_logical = i % map_size_y;
                     int x_detailed = (y_logical % 2 == 0) ? (x_logical * 4) : ((x_logical * 4) + 2);
@@ -2213,7 +2205,7 @@ namespace DnG_AdK_Mapedit
 
                     if (byteOffset >= 0 && byteOffset + 4 <= adk_byte_array.Length)
                     {
-                        //Swap x and y coordinates
+                        //Swap source_x and source_y coordinates
                         heightmap_logical[y_logical, x_logical] = BitConverter.ToInt32(adk_byte_array, byteOffset);
                     }
                 }
@@ -2258,21 +2250,21 @@ namespace DnG_AdK_Mapedit
             }
 
             // Block hexagons occupied by caves (byte 2, 0x04)
-            foreach (var cave in Caves_list)
+            foreach (var (pos_x, pos_y, type) in Caves_list)
             {
-                int caveByteIndex = gridstates_beginning + (cave.pos_y * map_size_x + cave.pos_x) * 4 + 1;
+                int caveByteIndex = gridstates_beginning + (pos_y * map_size_x + pos_x) * 4 + 1;
                 adk_byte_array[caveByteIndex] |= 0x04;
             }
 
             // Texture Swapping Loop
-            foreach (var swap in Swap_list)
+            foreach (var (tab, from, to) in Swap_list)
             {
-                if (swap.tab == 1)
+                if (tab == 1)
                 {
-                    int texture_from = BitConverter.ToInt32(DnG_textures[swap.from], 0);
-                    int texture_type_from = DnG_texture_types[swap.from];
-                    byte[] texture_to = AdK_textures[swap.to];
-                    int texture_type_to = AdK_texture_types[swap.to];
+                    int texture_from = BitConverter.ToInt32(DnG_textures[from], 0);
+                    int texture_type_from = DnG_texture_types[from];
+                    byte[] texture_to = AdK_textures[to];
+                    int texture_type_to = AdK_texture_types[to];
 
                     for (int j = 0; j < map_area; j++)
                     {
@@ -2521,7 +2513,7 @@ namespace DnG_AdK_Mapedit
             //Write buoy connections
             if (Harbours_list.Count > 0)
             {
-                foreach (var connection in Buoy_connections)
+                foreach (var (connection_id, harbour_1_id, harbour_2_id, buoy_source_x, buoy_source_y, buoy_target_x, buoy_target_y) in Buoy_connections)
                 {
                     MemoryStream buoyStream = new MemoryStream();
                     using (BinaryWriter w = new BinaryWriter(buoyStream))
@@ -2529,17 +2521,17 @@ namespace DnG_AdK_Mapedit
                         //Write the first static value and the ID header
                         w.Write(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x2D, 0xD1, 0x27, 0x1C, 0x0E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                         //Write the connection ID
-                        w.Write(connection.connection_id);
+                        w.Write(connection_id);
                         w.Write(0);
                         //Write the ID header
                         w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                         //Write the first harbour ID
-                        w.Write(connection.harbour_1_id);
+                        w.Write(harbour_1_id);
                         w.Write(0);
                         //Write the ID header
                         w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                         //Write the second harbour ID
-                        w.Write(connection.harbour_2_id);
+                        w.Write(harbour_2_id);
                         w.Write(0);
                         //Write the third static value
                         w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79, 0x3C, 0xF8, 0x25, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF });
@@ -2550,7 +2542,7 @@ namespace DnG_AdK_Mapedit
                     current_adk_byte += bBytes.Length;
 
                     //Compute the path connecting the buoys
-                    int[][] buoyPath = FindPath(heightmap_logical, new[] { connection.buoy_source_x, connection.buoy_source_y }, new[] { connection.buoy_target_x, connection.buoy_target_y }, globalReservedPaths);
+                    int[][] buoyPath = FindPath(heightmap_logical, new[] { buoy_source_x, buoy_source_y }, new[] { buoy_target_x, buoy_target_y }, established_connections);
 
                     if (buoyPath != null)
                     {
@@ -2572,7 +2564,7 @@ namespace DnG_AdK_Mapedit
                             byte[] sBytes = stepMs.ToArray();
                             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, sBytes);
                             current_adk_byte += sBytes.Length;
-                            globalReservedPaths.Add(step);
+                            established_connections.Add(step);
                         }
                     }
                     else
@@ -2644,9 +2636,9 @@ namespace DnG_AdK_Mapedit
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
                     //Write buoy 1 world stream_offset
-                    var buoyCoords = GetBuoyWorldCoordinates(harbour, 0);
-                    w.Write(buoyCoords.x);
-                    w.Write(buoyCoords.y);
+                    var (x, y) = GetBuoyWorldCoordinates(harbour, 0);
+                    w.Write(x);
+                    w.Write(y);
 
                     w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x7F, 0x63, 0xCD, 0xE0, 0x13, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
 
@@ -2703,17 +2695,17 @@ namespace DnG_AdK_Mapedit
             {
                 // Write the caves data to the AdK map
                 writer.Write(caves_amount);
-                foreach (var cave in Caves_list)
+                foreach (var (pos_x, pos_y, type) in Caves_list)
                 {
-                    writer.Write(CaveTypes[cave.type]);
+                    writer.Write(CaveTypes[type]);
                     writer.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x74, 0x76, 0x80, 0x4A, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
                     writer.Write(GenerateUniqueID());
                     // Pattern cursor
                     writer.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
                     // X
-                    writer.Write(cave.pos_x);
+                    writer.Write(pos_x);
                     // Y
-                    writer.Write(cave.pos_y);
+                    writer.Write(pos_y);
                 }
                 // Add empty 4 bytes at the end of the file
                 writer.Write(0);
@@ -2761,22 +2753,22 @@ namespace DnG_AdK_Mapedit
                     logical_grid_ambients[pos_x, pos_y] = true;
                 }
                 //Caves
-                foreach (var cave in Caves_list)
+                foreach (var (pos_x, pos_y, type) in Caves_list)
                 {
-                    logical_grid_blocking[cave.pos_x, cave.pos_y] = true;
+                    logical_grid_blocking[pos_x, pos_y] = true;
                 }
             }
 
             //Logical grid swapping
-            foreach (var swap in Swap_list)
+            foreach (var (tab, from, to) in Swap_list)
             {
-                if (swap.tab == 2)
+                if (tab == 2)
                 {
-                    int source_type = DnG_logical_grid_types[swap.from];
-                    int target_type = AdK_logical_grid_types[swap.to];
+                    int source_type = DnG_logical_grid_types[from];
+                    int target_type = AdK_logical_grid_types[to];
 
-                    int source = BitConverter.ToInt32(DnG_logical_grid[swap.from], 0);
-                    byte[] target = AdK_logical_grid[swap.to];
+                    int source = BitConverter.ToInt32(DnG_logical_grid[from], 0);
+                    byte[] target = AdK_logical_grid[to];
 
                     //Source and target types are equal
                     if (source_type == target_type || (source_type <= 1 && target_type <= 1))
@@ -3112,7 +3104,7 @@ namespace DnG_AdK_Mapedit
                         //Deposits
                         if (target_type <= 1)
                         {
-                            foreach (var deposit in extracted_objects)
+                            foreach (var (pos_x, pos_y, ID) in extracted_objects)
                             {
                                 //if (!logical_grid_blocking[deposit.pos_x, deposit.pos_y])
                                 //{
@@ -3126,15 +3118,15 @@ namespace DnG_AdK_Mapedit
     0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00
 });
                                     //ID
-                                    w.Write(deposit.ID);
+                                    w.Write(ID);
                                     w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54,
     0x0D, 0x00, 0x00, 0x00
 });
                                     //Logical X
-                                    w.Write(deposit.pos_x);
+                                    w.Write(pos_x);
                                     //Logical Y
-                                    w.Write(deposit.pos_y);
+                                    w.Write(pos_y);
                                     w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5,
     0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -3142,21 +3134,21 @@ namespace DnG_AdK_Mapedit
     0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00
 });
                                     //Detailed X
-                                    if (deposit.pos_y % 2 == 0)
+                                    if (pos_y % 2 == 0)
                                     {
-                                        w.Write(deposit.pos_x * 4);
+                                        w.Write(pos_x * 4);
                                     }
                                     else
                                     {
-                                        w.Write(deposit.pos_x * 4 + 2);
+                                        w.Write(pos_x * 4 + 2);
                                     }
                                     //Detailed Y
-                                    w.Write(deposit.pos_y * 4);
+                                    w.Write(pos_y * 4);
                                     w.Write(new byte[] { 0x00, 0x00, 0x80, 0x3F, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF });
                                 }
 
                                 // Calculate grid state offset
-                                int target_byte = gridstates_beginning + (deposit.pos_x + deposit.pos_y * map_size_x) * 4;
+                                int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4;
 
                                 //Byte 1
                                 adk_memory_stream.Position = target_byte;
@@ -3175,7 +3167,7 @@ namespace DnG_AdK_Mapedit
                                 ReplaceStreamBytes(adk_memory_stream, deposits_beginning + 4, 0, deposit_stream.ToArray(), 0, -1);
                                 deposits_amount++;
 
-                                logical_grid_blocking[deposit.pos_x, deposit.pos_y] = true;
+                                logical_grid_blocking[pos_x, pos_y] = true;
 
                                 //Shift other arrays
                                 animals_beginning += 108;
@@ -3194,7 +3186,7 @@ namespace DnG_AdK_Mapedit
                                 //Animals
                                 case 2:
                                     {
-                                        foreach (var animal in extracted_objects)
+                                        foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
                                             //if (!logical_grid_animals[animal.pos_x, animal.pos_y])
                                             //{
@@ -3207,15 +3199,15 @@ namespace DnG_AdK_Mapedit
     0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00
 });
-                                                w.Write(animal.ID);
+                                                w.Write(ID);
                                                 w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00
 });
                                                 //X
-                                                w.Write(animal.pos_x);
+                                                w.Write(pos_x);
                                                 //Y
-                                                w.Write(animal.pos_y);
+                                                w.Write(pos_y);
                                                 w.Write(new byte[] {
     0x01, 0x00, 0x00, 0x00, 0x77, 0x67, 0x5B, 0x0D,
     0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3226,23 +3218,23 @@ namespace DnG_AdK_Mapedit
     0x0D, 0x00, 0x00, 0x00
 });
                                                 //X
-                                                w.Write(animal.pos_x);
+                                                w.Write(pos_x);
                                                 //Y
-                                                w.Write(animal.pos_y);
+                                                w.Write(pos_y);
                                                 w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xAE, 0x02, 0x54, 0x70,
     0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00
 });
                                                 //X
-                                                w.Write(animal.pos_x);
+                                                w.Write(pos_x);
                                                 //Y
-                                                w.Write(animal.pos_y);
+                                                w.Write(pos_y);
                                                 w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
                                                 //X
-                                                w.Write(animal.pos_x);
+                                                w.Write(pos_x);
                                                 //Y
-                                                w.Write(animal.pos_y);
+                                                w.Write(pos_y);
                                                 w.Write(new byte[] {
     0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54,
     0x0D, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -3259,7 +3251,7 @@ namespace DnG_AdK_Mapedit
                                             ReplaceStreamBytes(adk_memory_stream, animals_beginning + 4, 0, animal_stream.ToArray(), 0, -1);
                                             animals_amount++;
 
-                                            logical_grid_animals[animal.pos_x, animal.pos_y] = true;
+                                            logical_grid_animals[pos_x, pos_y] = true;
 
                                             //Shift other arrays
                                             doodads_beginning += 244;
@@ -3274,7 +3266,7 @@ namespace DnG_AdK_Mapedit
                                 //Blocking doodads
                                 case 3:
                                     {
-                                        foreach (var blocking_doodad in extracted_objects)
+                                        foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
                                             //if (!logical_grid_blocking[blocking_doodad.pos_x, blocking_doodad.pos_y])
                                             //{
@@ -3283,23 +3275,23 @@ namespace DnG_AdK_Mapedit
                                             {
                                                 w.Write(target);
                                                 w.Write(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x5B, 0x76, 0x5C, 0xEF, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
-                                                w.Write(blocking_doodad.ID);
+                                                w.Write(ID);
                                                 w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x1D, 0x85, 0x47, 0x6F, 0x0F, 0x00, 0x00, 0x00 });
                                                 //Detailed X
-                                                if (blocking_doodad.pos_y % 2 == 0)
+                                                if (pos_y % 2 == 0)
                                                 {
-                                                    w.Write(blocking_doodad.pos_x * 4);
+                                                    w.Write(pos_x * 4);
                                                 }
                                                 else
                                                 {
-                                                    w.Write(blocking_doodad.pos_x * 4 + 2);
+                                                    w.Write(pos_x * 4 + 2);
                                                 }
                                                 //Detailed Y
-                                                w.Write(blocking_doodad.pos_y * 4);
+                                                w.Write(pos_y * 4);
                                             }
 
                                             // Calculate grid state offset
-                                            int target_byte = gridstates_beginning + (blocking_doodad.pos_x + blocking_doodad.pos_y * map_size_x) * 4 + 1;
+                                            int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
 
                                             //Byte 2
                                             adk_memory_stream.Position = target_byte;
@@ -3314,7 +3306,7 @@ namespace DnG_AdK_Mapedit
                                             ReplaceStreamBytes(adk_memory_stream, blocking_doodads_beginning + 4, 0, blocking_doodad_stream.ToArray(), 0, -1);
                                             blocking_doodads_amount++;
 
-                                            logical_grid_blocking[blocking_doodad.pos_x, blocking_doodad.pos_y] = true;
+                                            logical_grid_blocking[pos_x, pos_y] = true;
 
                                             //Shift other arrays
                                             ambients_beginning += 56;
@@ -3326,7 +3318,7 @@ namespace DnG_AdK_Mapedit
                                 //Ambients
                                 case 4:
                                     {
-                                        foreach (var ambient in extracted_objects)
+                                        foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
                                             //if (!logical_grid_ambients[ambient.pos_x, ambient.pos_y])
                                             //{
@@ -3336,15 +3328,15 @@ namespace DnG_AdK_Mapedit
                                                 w.Write(target);
                                                 w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
                                                 //X
-                                                w.Write(ambient.pos_x);
+                                                w.Write(pos_x);
                                                 //Y
-                                                w.Write(ambient.pos_y);
+                                                w.Write(pos_y);
                                             }
 
                                             ReplaceStreamBytes(adk_memory_stream, ambients_beginning + 4, 0, ambient_stream.ToArray(), 0, -1);
                                             ambients_amount++;
 
-                                            logical_grid_ambients[ambient.pos_x, ambient.pos_y] = true;
+                                            logical_grid_ambients[pos_x, pos_y] = true;
 
                                             //Shift other arrays
                                             caves_beginning += 24;
@@ -3355,7 +3347,7 @@ namespace DnG_AdK_Mapedit
                                 //Caves
                                 case 5:
                                     {
-                                        foreach (var cave in extracted_objects)
+                                        foreach (var (pos_x, pos_y, ID) in extracted_objects)
                                         {
                                             //if (!logical_grid_blocking[cave.pos_x, cave.pos_y])
                                             //{
@@ -3364,17 +3356,17 @@ namespace DnG_AdK_Mapedit
                                             {
                                                 w.Write(target);
                                                 w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x74, 0x76, 0x80, 0x4A, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00 });
-                                                w.Write(cave.ID);
+                                                w.Write(ID);
                                                 // Pattern cursor
                                                 w.Write(new byte[] { 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00 });
                                                 // X
-                                                w.Write(cave.pos_x);
+                                                w.Write(pos_x);
                                                 // Y
-                                                w.Write(cave.pos_y);
+                                                w.Write(pos_y);
                                             }
 
                                             // Calculate grid state offset
-                                            int target_byte = gridstates_beginning + (cave.pos_x + cave.pos_y * map_size_x) * 4 + 1;
+                                            int target_byte = gridstates_beginning + (pos_x + pos_y * map_size_x) * 4 + 1;
 
                                             //Byte 2
                                             adk_memory_stream.Position = target_byte;
@@ -3389,7 +3381,7 @@ namespace DnG_AdK_Mapedit
                                             ReplaceStreamBytes(adk_memory_stream, caves_beginning + 4, 0, cave_stream.ToArray(), 0, -1);
                                             caves_amount++;
 
-                                            logical_grid_blocking[cave.pos_x, cave.pos_y] = true;
+                                            logical_grid_blocking[pos_x, pos_y] = true;
                                             //}
                                         }
                                         break;
@@ -3416,14 +3408,14 @@ namespace DnG_AdK_Mapedit
             }
 
             // Doodads grid swapping
-            foreach (var swap in Swap_list)
+            foreach (var (tab, from, to) in Swap_list)
             {
-                if (swap.tab != 3) continue;
+                if (tab != 3) continue;
 
-                bool has_source_lifetime = is_lifetime_dng[swap.from] != 0;
-                bool has_target_lifetime = is_lifetime_adk[swap.to] != 0;
-                int source_type = BitConverter.ToInt32(doodads_dng[swap.from], 0);
-                byte[] target_type = doodads_adk[swap.to];
+                bool has_source_lifetime = is_lifetime_dng[from] != 0;
+                bool has_target_lifetime = is_lifetime_adk[to] != 0;
+                int source_type = BitConverter.ToInt32(doodads_dng[from], 0);
+                byte[] target_type = doodads_adk[to];
 
                 // 1. Same array type: In-place ID overwrite for ALL matching instances
                 if (has_source_lifetime == has_target_lifetime)
@@ -3586,10 +3578,10 @@ namespace DnG_AdK_Mapedit
             }
         }
 
-        Random rand = new Random();
+        readonly Random rand = new Random();
 
         // List of all used IDs
-        HashSet<int> used_IDs = new HashSet<int>();
+        readonly HashSet<int> used_IDs = new HashSet<int>();
 
         private int GenerateUniqueID()
         {
@@ -3630,7 +3622,7 @@ namespace DnG_AdK_Mapedit
         {
             Buoy_connections.Clear();
             Harbour_data.Clear();
-            globalReservedPaths.Clear();
+            established_connections.Clear();
 
             var processedPairs = new HashSet<(int, int)>();
 
@@ -3646,13 +3638,13 @@ namespace DnG_AdK_Mapedit
 
             for (int i = 0; i < Harbours_list.Count; i++)
             {
-                var harbor = Harbours_list[i];
+                var (_, _, _, _, _, _, buoy_1_connection, buoy_2_connection) = Harbours_list[i];
 
                 // Process Buoy 1 (Sub-index 0)
-                ProcessConnection(i, 0, harbor.buoy_1_connection, processedPairs, harbourBuoyConnectionIds, harbourIds);
+                ProcessConnection(i, 0, buoy_1_connection, processedPairs, harbourBuoyConnectionIds, harbourIds);
 
                 // Process Buoy 2 (Sub-index 1)
-                ProcessConnection(i, 1, harbor.buoy_2_connection, processedPairs, harbourBuoyConnectionIds, harbourIds);
+                ProcessConnection(i, 1, buoy_2_connection, processedPairs, harbourBuoyConnectionIds, harbourIds);
             }
 
             // 2. Populate Harbour_data using the generated harbour IDs
@@ -3711,8 +3703,8 @@ namespace DnG_AdK_Mapedit
             var targetHarbor = Harbours_list[targetHarborIdx];
 
             // Get coordinates for both buoy positions
-            var source_coordinates = GetBuoyWorldCoordinates(sourceHarbor, sourceBuoySubIdx);
-            var target_coordinates = GetBuoyWorldCoordinates(targetHarbor, targetBuoySubIdx);
+            var (source_x, source_y) = GetBuoyWorldCoordinates(sourceHarbor, sourceBuoySubIdx);
+            var (target_x, target_y) = GetBuoyWorldCoordinates(targetHarbor, targetBuoySubIdx);
 
             // Generate a random unique ID for the connection
             int connectionId = GenerateUniqueID();
@@ -3722,10 +3714,10 @@ namespace DnG_AdK_Mapedit
                 connectionId,
                 harbourIds[sourceHarborIdx],
                 harbourIds[targetHarborIdx],
-                source_coordinates.x,
-                source_coordinates.y,
-                target_coordinates.x,
-                target_coordinates.y
+                source_x,
+                source_y,
+                target_x,
+                target_y
             ));
 
             // Map connection ID to both source and target buoy slots
@@ -3733,9 +3725,9 @@ namespace DnG_AdK_Mapedit
             harbourBuoyConnectionIds[targetHarborIdx, targetBuoySubIdx] = connectionId;
         }
 
-        List<int[]> globalReservedPaths = new List<int[]>();
+        readonly List<int[]> established_connections = new List<int[]>();
 
-        public struct State : IEquatable<State>
+        public readonly struct State : IEquatable<State>
         {
             public int Row { get; }
             public int Col { get; }
@@ -3791,7 +3783,7 @@ namespace DnG_AdK_Mapedit
         // Direction offsets for Odd-R grid (0: E, 1: SE, 2: SW, 3: W, 4: NW, 5: NE)
         private static readonly int[][][] Offsets = new int[][][]
         {
-        // Even Rows (y % 2 == 0)
+        // Even Rows (source_y % 2 == 0)
         new int[][] {
             new int[] { 0, 1 },  // 0: East
             new int[] { 1, 0 },  // 1: SE
@@ -3800,7 +3792,7 @@ namespace DnG_AdK_Mapedit
             new int[] { -1, -1 },// 4: NW
             new int[] { -1, 0 }  // 5: NE
         },
-        // Odd Rows (y % 2 != 0) - Shifted Right
+        // Odd Rows (source_y % 2 != 0) - Shifted Right
         new int[][] {
             new int[] { 0, 1 },  // 0: East
             new int[] { 1, 1 },  // 1: SE
@@ -3812,13 +3804,13 @@ namespace DnG_AdK_Mapedit
         };
 
         /// <summary>
-        /// Finds the optimal path from start to goal as an array of [x, y] coordinates.
+        /// Finds the optimal path from start to goal as an array of [source_x, source_y] coordinates.
         /// </summary>
         /// <param name="heightMap">2D array [row, col] of heights as signed integers.</param>
-        /// <param name="start">Start coordinate array [x, y].</param>
-        /// <param name="goal">Goal coordinate array [x, y].</param>
+        /// <param name="start">Start coordinate array [source_x, source_y].</param>
+        /// <param name="goal">Goal coordinate array [source_x, source_y].</param>
         /// <param name="establishedPaths">List/collection of previously computed paths to treat as impassable.</param>
-        /// <returns>Array of [x, y] coordinates from start to goal, or null if no valid path exists.</returns>
+        /// <returns>Array of [source_x, source_y] coordinates from start to goal, or null if no valid path exists.</returns>
         public static int[][] FindPath(
             int[,] heightMap,
             int[] start,
@@ -3839,7 +3831,7 @@ namespace DnG_AdK_Mapedit
                 {
                     if (coord != null && coord.Length >= 2)
                     {
-                        blockedCoordinates.Add(Tuple.Create(coord[1], coord[0])); // y = Row, x = Col
+                        blockedCoordinates.Add(Tuple.Create(coord[1], coord[0])); // source_y = Row, source_x = Col
                     }
                 }
             }
@@ -3911,8 +3903,7 @@ namespace DnG_AdK_Mapedit
                     int newGCost = current.GCost + stepCost;
                     State nextState = new State(nextRow, nextCol, dir);
 
-                    int existingG;
-                    if (!gCosts.TryGetValue(nextState, out existingG) || newGCost < existingG)
+                    if (!gCosts.TryGetValue(nextState, out int existingG) || newGCost < existingG)
                     {
                         gCosts[nextState] = newGCost;
                         int hCost = GetHeuristic(nextRow, nextCol, goalRow, goalCol);
@@ -3924,12 +3915,12 @@ namespace DnG_AdK_Mapedit
 
             if (bestGoalNode == null) return null;
 
-            // Reconstruct path to int[][] array of [x, y] coordinates
+            // Reconstruct path to int[][] array of [source_x, source_y] coordinates
             List<int[]> pathList = new List<int[]>();
             Node curr = bestGoalNode;
             while (curr != null)
             {
-                pathList.Add(new int[] { curr.State.Col, curr.State.Row }); // [x, y]
+                pathList.Add(new int[] { curr.State.Col, curr.State.Row }); // [source_x, source_y]
                 curr = curr.Parent;
             }
 
@@ -3983,7 +3974,7 @@ namespace DnG_AdK_Mapedit
                 {
                     int pi = (ci - 1) / 2;
                     if (elements[ci].Item2 >= elements[pi].Item2) break;
-                    var tmp = elements[ci]; elements[ci] = elements[pi]; elements[pi] = tmp;
+                    (elements[pi], elements[ci]) = (elements[ci], elements[pi]);
                     ci = pi;
                 }
             }
@@ -4005,7 +3996,7 @@ namespace DnG_AdK_Mapedit
                     if (rc <= li && elements[rc].Item2 < elements[ci].Item2)
                         ci = rc;
                     if (elements[pi].Item2 <= elements[ci].Item2) break;
-                    var tmp = elements[pi]; elements[pi] = elements[ci]; elements[ci] = tmp;
+                    (elements[ci], elements[pi]) = (elements[pi], elements[ci]);
                     pi = ci;
                 }
                 return frontItem;
@@ -4117,8 +4108,8 @@ namespace DnG_AdK_Mapedit
         2, // [47] rock 2
         2, // [48] rock big 2
         2, // [49] rock small 2
-        2, // [50] rock stretched x 2
-        2, // [51] rock stretched y 2
+        2, // [50] rock stretched source_x 2
+        2, // [51] rock stretched source_y 2
         3, // [52] sand 3
         1, // [53] sand stones 1
         3, // [54] seaground 3
@@ -4240,8 +4231,8 @@ namespace DnG_AdK_Mapedit
         new byte[] { 0xFE, 0xAF, 0x0F, 0xD0 }, // [47] rock
         new byte[] { 0xEF, 0xBE, 0xAD, 0xDE }, // [48] rock big
         new byte[] { 0xFE, 0xCA, 0xFE, 0xCA }, // [49] rock small
-        new byte[] { 0x00, 0xCB, 0xFE, 0xCA }, // [50] rock stretched x
-        new byte[] { 0x01, 0xCB, 0xFE, 0xCA }, // [51] rock stretched y
+        new byte[] { 0x00, 0xCB, 0xFE, 0xCA }, // [50] rock stretched source_x
+        new byte[] { 0x01, 0xCB, 0xFE, 0xCA }, // [51] rock stretched source_y
         new byte[] { 0x0D, 0xB0, 0xDE, 0xBA }, // [52] sand
         new byte[] { 0x0E, 0xB0, 0xDE, 0xBA }, // [53] sand stones
         new byte[] { 0x0B, 0xB0, 0xBE, 0xBA }, // [54] seaground
