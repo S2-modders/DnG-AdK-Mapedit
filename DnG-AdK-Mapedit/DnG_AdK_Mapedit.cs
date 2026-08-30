@@ -489,7 +489,7 @@ namespace DnG_AdK_Mapedit
             current_byte += 4;
             map_size_y = (int)BitConverter.ToUInt32(DnG_map, current_byte);
             current_byte += 4;
-            Map_info_size.Text = "Map size: " + map_size_x.ToString() + "source_x" + map_size_y.ToString();
+            Map_info_size.Text = "Map size: " + map_size_x.ToString() + "x" + map_size_y.ToString();
 
             //Update maximum positions
             Harbour_position_X_input.Maximum = map_size_x - 1;
