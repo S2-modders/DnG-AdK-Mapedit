@@ -1,15 +1,16 @@
 # The Settlers - Rise of Cultures map creation tool
 
+Special thanks to [J4n1X](https://github.com/J4n1X) for help with adding harbour support.
+
 This tool allows to create maps for The Settlers - Rise of Cultures using the map editor from The Settlers II - 10th Anniversary (It can't edit Rise of Cultures maps).
 Maps can be published on the discord server: https://discord.gg/UAXH3VS9Qy
 
 Multiplayer maps pack can be found here: https://www.moddb.com/games/the-settlers-rise-of-cultures/addons/sadk-multiplayer-maps-pack
 
-The only remaining feature is the ability to add harbours to the map.
-
 ## Most important changes compared to the old map converter from 2009:
 - Maps no longer crash randomly during gameplay.
 - Support for maps with odd player counts was added.
+- Harbour support was added.
 - Caves section now works properly.
 - Swapping was added to allow using new assets.
 - Whole map preset can now be saved not requiring inputting values manually with each map edit.
@@ -49,7 +50,7 @@ Swapping allows to use new assets by replacing ones accessible in the 10th Anniv
 
 - Clicking the remove button in both harbours and animal caves will remove the currently displayed item in the list.
 - All fields allowing to enter coordinates use the logical grid. Map editor displays the detailed grid coordinates by default. To convert from detailed to logical coordinates divide them by 4 and remove the decimal component or switch the status-bar to show logical coordinates (`Tools` -> `Statusbar` -> `Logical`)
-- Harbours can be connected in an infinite chain like in mission 10 or form any polygon like in mission 11. Double-ship connections between two harbours should be possible but I'm unable to test that.
+- Harbours can be connected in an infinite chain like in mission 10 or form any polygon like in mission 11. Double-ship connections are also possible doubling the capacity and allowing for 2 sea attacks instead of just 1.
 
 ### Environment tab
 <img width="1266" height="647" alt="Zrzut ekranu_20260926_142005" src="https://github.com/user-attachments/assets/88fc00e1-82bb-4ca6-b0ff-346beff0692c" />
@@ -77,3 +78,4 @@ Most maps should use one of the included presets in the export section
 - "Map presets" create a backup of export settings except resource swapping.
 - If the map preview is not present in the same directory under the same name as the map file the game will crash.
 - Multiplayer maps have to be placed in `game folder/game/data/maps/freegamemaps` directory and have it's file name start with the `MP_` prefix.
+- Scenarios can be created by adding `.lua` files.

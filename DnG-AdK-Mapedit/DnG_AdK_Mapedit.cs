@@ -19,18 +19,18 @@ namespace DnG_AdK_Mapedit
             Changelog_button.LinkVisited = true;
             string message = @"Changes compared to the original map converter:
 
-• (Beta 3) Dark mode support was added
+• Dark mode support was added
 • Invalid resources are now automatically removed
 • Swapping was added to allow using new assets
-• Harbour code was added but currently it's causing game crashes
+• Harbour support was added
 • Caves section now works properly
 • Knowledge of exact sacrifice names is not required as icons are displayed instead
 • Sacrifice limits are now automatically checked and displayed
 • Each sacrifice preset is now stored in individual files and can be easily exported
-• Default player colours and (Beta 4) difficulties can now be customized
-• (Beta 3) Added ability to create custom environment files
+• Default player colours and difficulties can now be customized
+• Added ability to create custom environment files
 • Whole map preset can be now saved not requiring inputting values manually with each map edit
-• (Beta 4) Map creator receives an information about forester crash fix
+• Map creator receives an information about forester crash fix
 • Support for maps with odd player counts was added
 • Maps no longer crash randomly during gameplay
 • Resource signs placed by map creators now never despawn";
@@ -115,9 +115,6 @@ namespace DnG_AdK_Mapedit
             Swap_move_down_button.Enabled = false;
             Swap_remove_button.Enabled = false;
             Swap_move_up_button.Enabled = false;
-
-            //For now disable broken harbour section
-            Harbours_tab.Enabled = false;
 
             Harbours_remove_button.Enabled = false;
             Harbour_panel.Enabled = false;
@@ -3404,7 +3401,7 @@ namespace DnG_AdK_Mapedit
             List<int[][]> route_paths = [];
             if (Harbours_list.Count > 0)
             {
-                foreach (var (connection_id, harbour_source_id, harbour_target_id, buoy_source_x, buoy_source_y, buoy_target_x, buoy_target_y) in Buoy_connections)
+                foreach (var (connection_id, harbour_source_id, harbour_target_id, buoy_source_number, buoy_target_number, buoy_source_x, buoy_source_y, buoy_target_x, buoy_target_y) in Buoy_connections)
                 {
                     MemoryStream buoyStream = new();
                     using (BinaryWriter w = new(buoyStream))
@@ -3461,7 +3458,12 @@ namespace DnG_AdK_Mapedit
                     }
                     else
                     {
-                        MessageBox.Show("Path connecting buoys (implement) is blocked.", "Path can't be established", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(
+                            $"Path connecting buoy {((buoy_source_number - 1) % 2) + 1} from harbour {(buoy_source_number - 1) / 2} to buoy {((buoy_target_number - 1) % 2) + 1} from harbour {(buoy_target_number - 1) / 2} is blocked.",
+                            "Path can't be established",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error
+                        );
                         return null;
                     }
                 }
@@ -4436,9 +4438,9 @@ namespace DnG_AdK_Mapedit
                 return null;
             }
 
-            foreach (var harbour in Harbours_list)
+            foreach (var (pos_x, pos_y, rotation, anchorage, anchor_x, anchor_y, buoy_1_connection, buoy_2_connection) in Harbours_list)
             {
-                gridstates[harbour.pos_y * map_size_x + harbour.pos_x] |= S2mRules.Harbour;
+                gridstates[pos_y * map_size_x + pos_x] |= S2mRules.Harbour;
             }
             foreach (var (harbour, buoy) in stored_buoys)
             {
@@ -4466,11 +4468,11 @@ namespace DnG_AdK_Mapedit
             int buoySubIndex)
         {
             var docks = buoySubIndex == 0 ? buoy1_docking_positions : buoy2_docking_positions;
-            var d1 = docks[harbour.rotation, 0];
-            var d2 = docks[harbour.rotation, 1];
+            var (offsetX, offsetY) = docks[harbour.rotation, 0];
+            var (offsetX2, offsetY2) = docks[harbour.rotation, 1];
             return (GetBuoyWorldCoordinates(harbour, buoySubIndex),
-                (harbour.pos_x + d1.offsetX, harbour.pos_y + d1.offsetY),
-                (harbour.pos_x + d2.offsetX, harbour.pos_y + d2.offsetY));
+                (harbour.pos_x + offsetX, harbour.pos_y + offsetY),
+                (harbour.pos_x + offsetX2, harbour.pos_y + offsetY2));
         }
 
         private bool IsFreeWater(uint[] gridstates, int x, int y) =>
@@ -4575,7 +4577,7 @@ namespace DnG_AdK_Mapedit
         };
 
         // Generated results
-        public List<(int connection_id, int harbour_source_id, int harbour_target_id, int buoy_source_x, int buoy_source_y, int buoy_target_x, int buoy_target_y)> Buoy_connections
+        public List<(int connection_id, int harbour_source_id, int harbour_target_id, int buoy_source_number, int buoy_target_number, int buoy_source_x, int buoy_source_y, int buoy_target_x, int buoy_target_y)> Buoy_connections
             = [];
 
         public List<(int harbour_id, int buoy_1_connection_id, int buoy_2_connection_id)> Harbour_data
@@ -4677,6 +4679,8 @@ namespace DnG_AdK_Mapedit
                 connectionId,
                 harbourIds[sourceHarborIdx],
                 harbourIds[targetHarborIdx],
+                sourceBuoyId,
+                targetBuoyId,
                 source_x,
                 source_y,
                 target_x,
@@ -4686,87 +4690,48 @@ namespace DnG_AdK_Mapedit
             // Map connection ID to both source and target buoy slots
             harbourBuoyConnectionIds[sourceHarborIdx, sourceBuoySubIdx] = connectionId;
             harbourBuoyConnectionIds[targetHarborIdx, targetBuoySubIdx] = connectionId;
+
+            established_connections.Add([source_x, source_y]);
+            established_connections.Add([target_x, target_y]);
         }
 
         readonly List<int[]> established_connections = [];
 
-        public readonly struct State(int row, int col, int direction) : IEquatable<State>
-        {
-            public int Row { get; } = row;
-            public int Col { get; } = col;
-            public int Direction { get; } = direction;
+#nullable enable
 
-            public bool Equals(State other)
-            {
-                return Row == other.Row && Col == other.Col && Direction == other.Direction;
-            }
+        // Direction offsets for Odd-R grid layout (0: E, 1: SE, 2: SW, 3: W, 4: NW, 5: NE)
+        private static readonly (int Row, int Col)[][] Offsets =
+        [
+            // Even Rows
+            [(0, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0)],
+        // Odd Rows
+        [(0, 1), (1, 1), (1, 0), (0, -1), (-1, 0), (-1, 1)]
+        ];
 
-            public override bool Equals(object obj)
-            {
-                return obj is State other && Equals(other);
-            }
+        public readonly record struct State(int Row, int Col, int Direction);
 
-            public override int GetHashCode()
-            {
-                return HashCode.Combine(Row, Col, Direction);
-            }
-
-            public static bool operator ==(State left, State right)
-            {
-                return left.Equals(right);
-            }
-
-            public static bool operator !=(State left, State right)
-            {
-                return !(left == right);
-            }
-        }
-
-        private class Node(DnG_AdK_Mapedit.State state, int gCost, int hCost, DnG_AdK_Mapedit.Node parent = null)
+        private sealed class Node(State state, int gCost, int hCost, Node? parent = null)
         {
             public State State { get; } = state;
             public int GCost { get; } = gCost;
             public int HCost { get; } = hCost;
             public int FCost => GCost + HCost;
-            public Node Parent { get; } = parent;
+            public Node? Parent { get; } = parent;
         }
 
-        // Direction offsets for Odd-R grid (0: E, 1: SE, 2: SW, 3: W, 4: NW, 5: NE)
-        private static readonly int[][][] Offsets =
-        [
-        // Even Rows (source_y % 2 == 0)
-        [
-            [0, 1],  // 0: East
-            [1, 0],  // 1: SE
-            [1, -1], // 2: SW
-            [0, -1], // 3: West
-            [-1, -1],// 4: NW
-            [-1, 0]  // 5: NE
-        ],
-        // Odd Rows (source_y % 2 != 0) - Shifted Right
-        [
-            [0, 1],  // 0: East
-            [1, 1],  // 1: SE
-            [1, 0],  // 2: SW
-            [0, -1], // 3: West
-            [-1, 0], // 4: NW
-            [-1, 1]  // 5: NE
-        ]
-        ];
-
         /// <summary>
-        /// Finds the optimal path from start to goal as an array of [source_x, source_y] coordinates.
+        /// Finds the optimal path from start to goal as an array of [col, row] coordinates.
         /// </summary>
         /// <param name="heightMap">2D array [row, col] of heights as signed integers.</param>
-        /// <param name="start">Start coordinate array [source_x, source_y].</param>
-        /// <param name="goal">Goal coordinate array [source_x, source_y].</param>
+        /// <param name="start">Start coordinate array [col, row].</param>
+        /// <param name="goal">Goal coordinate array [col, row].</param>
         /// <param name="establishedPaths">List/collection of previously computed paths to treat as impassable.</param>
-        /// <returns>Array of [source_x, source_y] coordinates from start to goal, or null if no valid path exists.</returns>
-        public static int[][] FindPath(
+        /// <returns>Array of [col, row] coordinates from start to goal, or null if no valid path exists.</returns>
+        public static int[][]? FindPath(
             int[,] heightMap,
             int[] start,
             int[] goal,
-            IEnumerable<int[]> establishedPaths = null)
+            IEnumerable<int[]>? establishedPaths = null)
         {
             int maxRows = heightMap.GetLength(0);
             int maxCols = heightMap.GetLength(1);
@@ -4774,32 +4739,35 @@ namespace DnG_AdK_Mapedit
             int startCol = start[0], startRow = start[1];
             int goalCol = goal[0], goalRow = goal[1];
 
-            // Store already reserved coordinates for O(1) lookup
-            HashSet<Tuple<int, int>> blockedCoordinates = [];
+            // Store already used coordinates (excluding start and goal hexes)
+            var blockedCoordinates = new HashSet<(int Row, int Col)>();
             if (establishedPaths != null)
             {
                 foreach (var coord in establishedPaths)
                 {
-                    if (coord != null && coord.Length >= 2)
+                    if (coord is { Length: >= 2 })
                     {
-                        blockedCoordinates.Add(Tuple.Create(coord[1], coord[0])); // source_y = Row, source_x = Col
+                        int c = coord[0], r = coord[1];
+                        // Start and finish hexes are allowed to overlap established paths
+                        if ((r == startRow && c == startCol) || (r == goalRow && c == goalCol))
+                            continue;
+
+                        blockedCoordinates.Add((r, c));
                     }
                 }
             }
 
-            // Validate start/goal bounds, height, and existing path overlaps
+            // Validate start/goal map bounds and land terrain restrictions (land >= -100)
             if (!IsValid(startRow, startCol, maxRows, maxCols) ||
                 !IsValid(goalRow, goalCol, maxRows, maxCols) ||
                 heightMap[startRow, startCol] >= -100 ||
-                heightMap[goalRow, goalCol] >= -100 ||
-                blockedCoordinates.Contains(Tuple.Create(startRow, startCol)) ||
-                blockedCoordinates.Contains(Tuple.Create(goalRow, goalCol)))
+                heightMap[goalRow, goalCol] >= -100)
             {
                 return null;
             }
 
-            MinHeapPriorityQueue<Node> openSet = new();
-            Dictionary<State, int> gCosts = [];
+            var openSet = new PriorityQueue<Node, int>();
+            var gCosts = new Dictionary<State, int>();
 
             State startState = new(startRow, startCol, -1);
             Node startNode = new(startState, 0, GetHeuristic(startRow, startCol, goalRow, goalCol));
@@ -4807,11 +4775,15 @@ namespace DnG_AdK_Mapedit
             openSet.Enqueue(startNode, startNode.FCost);
             gCosts[startState] = 0;
 
-            Node bestGoalNode = null;
+            Node? bestGoalNode = null;
 
             while (openSet.Count > 0)
             {
                 Node current = openSet.Dequeue();
+
+                // Skip state if a shorter path to it was already processed
+                if (gCosts.TryGetValue(current.State, out int existingCost) && current.GCost > existingCost)
+                    continue;
 
                 if (current.State.Row == goalRow && current.State.Col == goalCol)
                 {
@@ -4825,13 +4797,14 @@ namespace DnG_AdK_Mapedit
 
                 for (int dir = 0; dir < 6; dir++)
                 {
-                    int nextRow = curRow + Offsets[parity][dir][0];
-                    int nextCol = curCol + Offsets[parity][dir][1];
+                    var (dRow, dCol) = Offsets[parity][dir];
+                    int nextRow = curRow + dRow;
+                    int nextCol = curCol + dCol;
 
-                    // Check bounds, land impassability (>= -100), and established path collisions
+                    // Check bounds, land impassability (>= -100), and used hex collisions
                     if (!IsValid(nextRow, nextCol, maxRows, maxCols) ||
                         heightMap[nextRow, nextCol] >= -100 ||
-                        blockedCoordinates.Contains(Tuple.Create(nextRow, nextCol)))
+                        blockedCoordinates.Contains((nextRow, nextCol)))
                     {
                         continue;
                     }
@@ -4839,17 +4812,23 @@ namespace DnG_AdK_Mapedit
                     // 1. Base Cost
                     int stepCost = 1;
 
-                    // 2. Penalty: Water depth >= -4000
-                    if (heightMap[nextRow, nextCol] >= -4000)
-                        stepCost += 1;
-
-                    // 3. Penalty: Entering water adjacent to land (>= -100)
-                    if (IsNearLand(heightMap, nextRow, nextCol, maxRows, maxCols))
-                        stepCost += 1;
-
-                    // 4. Penalty: Turning (changing direction)
+                    // 2. Penalty: Turning (+1)
                     if (current.State.Direction != -1 && current.State.Direction != dir)
+                    {
                         stepCost += 1;
+                    }
+
+                    // 3. Penalty: Shallow water (>= -4000) OR near land (adjacent to >= -100) (+2)
+                    if (heightMap[nextRow, nextCol] >= -4000 || IsNearLand(heightMap, nextRow, nextCol, maxRows, maxCols))
+                    {
+                        stepCost += 2;
+                    }
+
+                    // 4. Penalty: Edge of map (+2)
+                    if (nextRow == 0 || nextRow == maxRows - 1 || nextCol == 0 || nextCol == maxCols - 1)
+                    {
+                        stepCost += 2;
+                    }
 
                     int newGCost = current.GCost + stepCost;
                     State nextState = new(nextRow, nextCol, dir);
@@ -4866,12 +4845,12 @@ namespace DnG_AdK_Mapedit
 
             if (bestGoalNode == null) return null;
 
-            // Reconstruct path to int[][] array of [source_x, source_y] coordinates
+            // Reconstruct path to array of [col, row]
             List<int[]> pathList = [];
-            Node curr = bestGoalNode;
+            Node? curr = bestGoalNode;
             while (curr != null)
             {
-                pathList.Add([curr.State.Col, curr.State.Row]); // [source_x, source_y]
+                pathList.Add([curr.State.Col, curr.State.Row]);
                 curr = curr.Parent;
             }
 
@@ -4884,8 +4863,9 @@ namespace DnG_AdK_Mapedit
             int parity = Math.Abs(r % 2);
             for (int i = 0; i < 6; i++)
             {
-                int nr = r + Offsets[parity][i][0];
-                int nc = c + Offsets[parity][i][1];
+                var (dRow, dCol) = Offsets[parity][i];
+                int nr = r + dRow;
+                int nc = c + dCol;
                 if (IsValid(nr, nc, maxR, maxC) && map[nr, nc] >= -100)
                 {
                     return true;
@@ -4896,7 +4876,7 @@ namespace DnG_AdK_Mapedit
 
         private static bool IsValid(int r, int c, int maxR, int maxC)
         {
-            return r >= 0 && r < maxR && c >= 0 && c < maxC;
+            return (uint)r < (uint)maxR && (uint)c < (uint)maxC;
         }
 
         private static int GetHeuristic(int r1, int c1, int r2, int c2)
@@ -4910,49 +4890,6 @@ namespace DnG_AdK_Mapedit
             return (Math.Abs(q1 - q2) + Math.Abs(r1 - r2) + Math.Abs(s1 - s2)) / 2;
         }
 
-        // Min-heap Binary Priority Queue implementation for .NET 4.8
-        private class MinHeapPriorityQueue<T>
-        {
-            private readonly List<Tuple<T, int>> elements = [];
-
-            public int Count => elements.Count;
-
-            public void Enqueue(T item, int priority)
-            {
-                elements.Add(Tuple.Create(item, priority));
-                int ci = elements.Count - 1;
-                while (ci > 0)
-                {
-                    int pi = (ci - 1) / 2;
-                    if (elements[ci].Item2 >= elements[pi].Item2) break;
-                    (elements[pi], elements[ci]) = (elements[ci], elements[pi]);
-                    ci = pi;
-                }
-            }
-
-            public T Dequeue()
-            {
-                int li = elements.Count - 1;
-                T frontItem = elements[0].Item1;
-                elements[0] = elements[li];
-                elements.RemoveAt(li);
-
-                --li;
-                int pi = 0;
-                while (true)
-                {
-                    int ci = pi * 2 + 1;
-                    if (ci > li) break;
-                    int rc = ci + 1;
-                    if (rc <= li && elements[rc].Item2 < elements[ci].Item2)
-                        ci = rc;
-                    if (elements[pi].Item2 <= elements[ci].Item2) break;
-                    (elements[ci], elements[pi]) = (elements[pi], elements[ci]);
-                    pi = ci;
-                }
-                return frontItem;
-            }
-        }
 
         private static readonly byte[][] HarbourRotations =
 [

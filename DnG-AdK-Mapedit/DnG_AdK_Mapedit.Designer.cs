@@ -3276,7 +3276,7 @@
             MaximizeBox = false;
             Name = "DnG_AdK_Mapedit";
             StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            Text = "DnG-AdK-Mapedit 1.0 Beta 4";
+            Text = "DnG-AdK-Mapedit 1.0";
             FormClosing += DnG_AdK_Mapedit_FormClosing;
             Load += DnG_AdK_mapedit_Load;
             Tab_control.ResumeLayout(false);
