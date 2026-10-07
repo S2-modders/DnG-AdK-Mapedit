@@ -2517,9 +2517,18 @@ namespace DnG_AdK_Mapedit
             //Check if all harbours have at least one connection
             for (int i = 0; i < Harbours_list.Count; i++)
             {
-                if (Harbours_list[i].buoy_1_connection == -1 && Harbours_list[i].buoy_2_connection == -1)
+                if (Harbours_list[i].buoy_1_connection <= 0 && Harbours_list[i].buoy_2_connection <= 0)
                 {
                     MessageBox.Show($"Harbour #{i + 1} does not have any connections.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+            }
+
+            //Ships are only built at a shipyard, which needs anchorage ground
+            if (Harbours_list.Count > 0 && !Harbours_list.Any(h => h.anchorage))
+            {
+                if (MessageBox.Show("No harbour has an anchorage, so no shipyard can be built and the harbours will never be used. Export anyway?", "No anchorage", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                {
                     return;
                 }
             }
@@ -2983,8 +2992,8 @@ namespace DnG_AdK_Mapedit
             //Skip to the UUID
             current_dng_byte += 24;
             current_adk_byte += 24;
-            //Overwrite UUID
-            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 16, DnG_map, current_dng_byte, 16);
+            //Each exported map needs its own UUID, the lobby identifies maps by it
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 16, Guid.NewGuid().ToByteArray());
             current_adk_byte += 16;
             current_dng_byte += 16;
 
@@ -3040,7 +3049,9 @@ namespace DnG_AdK_Mapedit
             //Skip to ID
             current_dng_byte += 12;
             current_adk_byte += 12;
-            //Overwrite ID
+            //Overwrite ID counter, new IDs are taken from it and the final value is written at the end
+            int unique_id_counter_offset = current_adk_byte;
+            next_unique_id = BitConverter.ToInt64(DnG_map, current_dng_byte);
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 8, DnG_map, current_dng_byte, 8);
             current_adk_byte += 8;
             current_dng_byte += 8;
@@ -3071,7 +3082,7 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += heightmap_data_length;
 
             int map_area = map_size_x * map_size_y;
-            int[,] heightmap_logical = new int[map_size_x, map_size_y];
+            int[,] heightmap_logical = new int[map_size_y, map_size_x];
 
             // Create a heightmap that uses only logical coordinates
             byte[] adk_byte_array = adk_memory_stream.ToArray(); // Fetch stream array buffer once
@@ -3148,9 +3159,7 @@ namespace DnG_AdK_Mapedit
                 if (tab == 1)
                 {
                     int texture_from = BitConverter.ToInt32(DnG_textures[from], 0);
-                    int texture_type_from = DnG_texture_types[from];
                     byte[] texture_to = AdK_textures[to];
-                    int texture_type_to = AdK_texture_types[to];
 
                     for (int j = 0; j < map_area; j++)
                     {
@@ -3158,27 +3167,6 @@ namespace DnG_AdK_Mapedit
                         if (BitConverter.ToInt32(adk_byte_array, textureOffset) == texture_from)
                         {
                             Buffer.BlockCopy(texture_to, 0, adk_byte_array, textureOffset, 4);
-                            int gridstateOffset = gridstates_beginning + j * 4;
-
-                            switch (texture_type_from)
-                            {
-                                case 1: adk_byte_array[gridstateOffset + 1] &= 0xFD; break; // Clear Building Spot
-                                case 2: adk_byte_array[gridstateOffset + 0] &= 0xEF; break; // Clear Mining Spot
-                                //Flag for sands does not exist
-                                case 4:
-                                    //Prevent stones from turning to trees
-                                    if ((adk_byte_array[gridstateOffset + 0] & 0x80) == 0)
-                                        adk_byte_array[gridstateOffset + 0] &= 0xFE; // Clear Blocked
-                                    break;
-                            }
-
-                            switch (texture_type_to)
-                            {
-                                case 1: adk_byte_array[gridstateOffset + 1] |= 0x02; break; // Set Building Spot
-                                case 2: adk_byte_array[gridstateOffset + 0] |= 0x10; break; // Set Mining Spot
-                                //Flag for sands does not exist
-                                case 4: adk_byte_array[gridstateOffset + 0] |= 0x01; break; // Set Blocked
-                            }
                         }
                     }
                 }
@@ -3197,7 +3185,7 @@ namespace DnG_AdK_Mapedit
                     int anchorTextureOffset = textures_beginning + (anchorIndex * 4);
                     Buffer.BlockCopy(pavementTexture, 0, adk_byte_array, anchorTextureOffset, 4);
 
-                    // 2. Validate coastal placement & apply Anchorage Flags to Gridstate Array
+                    //Validate coastal placement
                     int anchorGridstateOffset = gridstates_beginning + (anchorIndex * 4);
 
                     if ((adk_byte_array[anchorGridstateOffset] & 0x08) == 0)
@@ -3205,11 +3193,21 @@ namespace DnG_AdK_Mapedit
                         MessageBox.Show($"Harbour at index {i} has an anchor in an invalid location.", "Anchor is in invalid location", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return null;
                     }
+                }
+            }
 
-                    adk_byte_array[anchorGridstateOffset + 0] = 0x08; // Coastal Terrain
-                    adk_byte_array[anchorGridstateOffset + 1] = 0x00; // Base
-                    adk_byte_array[anchorGridstateOffset + 2] = 0x02; // Anchor Point Flag
-                    adk_byte_array[anchorGridstateOffset + 3] = 0x00; // Reserved
+            //Derive blocked, mining, building and ship ground flags from the final textures
+            uint[] gridstates = S2mRules.ReadUInts(adk_byte_array, gridstates_beginning, map_area);
+            List<int> resources_to_clear = S2mRules.RecomputePatternBits(gridstates, S2mRules.ReadUInts(adk_byte_array, textures_beginning, map_area));
+            S2mRules.WriteUInts(gridstates, adk_byte_array, gridstates_beginning);
+
+            //Ships can't pass spawns and blocking doodads in the water
+            if (Harbours_list.Count > 0)
+            {
+                for (int i = 0; i < map_area; i++)
+                {
+                    if ((gridstates[i] & S2mRules.LogicObject) != 0)
+                        heightmap_logical[i / map_size_x, i % map_size_x] = 0;
                 }
             }
 
@@ -3228,6 +3226,10 @@ namespace DnG_AdK_Mapedit
             //Overwrite resources array
             int resources_data_length = map_area * 8;
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, template_map_area * 8, DnG_map, current_dng_byte, resources_data_length);
+            foreach (int i in resources_to_clear)
+            {
+                ReplaceStreamBytes(adk_memory_stream, current_adk_byte + i * 8, 8, [0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF]);
+            }
             current_dng_byte += resources_data_length;
             current_adk_byte += resources_data_length;
 
@@ -3256,7 +3258,7 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += exploration_map_length;
             current_adk_byte += exploration_map_length;
 
-            //For now just overwrite the continents map without modifing the source
+            //Copy the continents map and the resources header, the continents are recomputed at the end
             byte[] depositsHeaderDng = [0x04, 0x00, 0x00, 0x00, 0xAE, 0xEB, 0x66, 0xEF, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
             byte[] depositsHeaderAdk = [0x06, 0x00, 0x00, 0x00, 0xAE, 0xEB, 0x66, 0xEF, 0x09, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00];
 
@@ -3265,6 +3267,8 @@ namespace DnG_AdK_Mapedit
             int depositsOffsetAdk = FindSequenceOffset(adk_byte_array, depositsHeaderAdk, current_adk_byte);
 
             int to_copy_length = depositsOffsetDng - current_dng_byte;
+            int continents_beginning = current_adk_byte;
+            int continents_length = to_copy_length - depositsHeaderDng.Length;
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, depositsOffsetAdk - current_adk_byte, DnG_map, current_dng_byte, to_copy_length);
             current_dng_byte = depositsOffsetDng;
             current_adk_byte += to_copy_length;
@@ -3303,11 +3307,11 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 4;
             int doodads_amount_adk = BitConverter.ToInt32(adk_memory_stream.ToArray(), current_adk_byte);
 
+            int doodads_data_length = doodads_amount * 56;
             doodads_amount += Harbours_list.Count(h => h.anchorage);
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(doodads_amount));
             current_adk_byte += 4;
             //Overwrite doodads array data
-            int doodads_data_length = doodads_amount * 56;
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, doodads_amount_adk * 56, DnG_map, current_dng_byte, doodads_data_length);
             current_dng_byte += doodads_data_length;
             current_adk_byte += doodads_data_length;
@@ -3397,6 +3401,7 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 4;
 
             //Write buoy connections
+            List<int[][]> route_paths = [];
             if (Harbours_list.Count > 0)
             {
                 foreach (var (connection_id, harbour_source_id, harbour_target_id, buoy_source_x, buoy_source_y, buoy_target_x, buoy_target_y) in Buoy_connections)
@@ -3419,8 +3424,8 @@ namespace DnG_AdK_Mapedit
                         //Write the target harbour ID
                         w.Write(harbour_target_id);
                         w.Write(0);
-                        //Write the third static value
-                        w.Write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79, 0x3C, 0xF8, 0x25, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+                        //Write the empty ship references list and the street ID (none)
+                        w.Write([0x00, 0x00, 0x00, 0x00, 0x79, 0x3C, 0xF8, 0x25, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
                     }
 
                     byte[] bBytes = buoyStream.ToArray();
@@ -3432,6 +3437,7 @@ namespace DnG_AdK_Mapedit
 
                     if (buoyPath != null)
                     {
+                        route_paths.Add(buoyPath);
                         ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, BitConverter.GetBytes(buoyPath.Length));
                         current_adk_byte += 4;
 
@@ -3468,11 +3474,22 @@ namespace DnG_AdK_Mapedit
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(Harbours_list.Count));
             current_adk_byte += 4;
 
-            //Write harbour data, 404 bytes per harbour
+            //Write harbour data
+            List<(int harbour, int buoy)> stored_buoys = [];
             for (int i = 0; i < Harbours_list.Count; i++)
             {
                 var harbour = Harbours_list[i];
                 int harbour_rotation = harbour.rotation;
+                int[] connection_ids = [harbour.buoy_1_connection > 0 ? Harbour_data[i].buoy_1_connection_id : -1, harbour.buoy_2_connection > 0 ? Harbour_data[i].buoy_2_connection_id : -1];
+
+                //Unconnected buoys are only stored when the buoy and its docks are in free water
+                List<int> buoys = [];
+                for (int b = 0; b < 2; b++)
+                {
+                    var (buoy_cell, dock_1, dock_2) = GetBuoyCells(harbour, b);
+                    if (connection_ids[b] != -1 || (IsFreeWater(gridstates, buoy_cell.x, buoy_cell.y) && IsFreeWater(gridstates, dock_1.x, dock_1.y) && IsFreeWater(gridstates, dock_2.x, dock_2.y)))
+                        buoys.Add(b);
+                }
 
                 MemoryStream harbourStream = new();
                 using (BinaryWriter w = new(harbourStream))
@@ -3491,72 +3508,43 @@ namespace DnG_AdK_Mapedit
                     w.Write(harbour.pos_x);
                     w.Write(harbour.pos_y);
 
-                    //Set the mystery value to 2 in order to skip creation of a separate array storing harbour IDs
-                    w.Write(2);
+                    w.Write(buoys.Count);
 
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0x7F, 0x63, 0xCD, 0xE0, 0x13, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 1 docking stream_offset 1
-                    var dOffset = buoy1_docking_positions[harbour_rotation, 0];
-                    w.Write(harbour.pos_x + dOffset.offsetX);
-                    w.Write(harbour.pos_y + dOffset.offsetY);
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 1 docking stream_offset 2
-                    dOffset = buoy1_docking_positions[harbour_rotation, 1];
-                    w.Write(harbour.pos_x + dOffset.offsetX);
-                    w.Write(harbour.pos_y + dOffset.offsetY);
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 1 connection ID
-                    if (harbour.buoy_1_connection <= 0)
-                        w.Write([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-                    else
+                    foreach (int b in buoys)
                     {
-                        w.Write(Harbour_data[i].buoy_1_connection_id);
-                        w.Write(0);
+                        var (buoy, dock_1, dock_2) = GetBuoyCells(harbour, b);
+
+                        w.Write([0x00, 0x00, 0x00, 0x00, 0x7F, 0x63, 0xCD, 0xE0, 0x13, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
+
+                        //Write docking position 1
+                        w.Write(dock_1.x);
+                        w.Write(dock_1.y);
+
+                        w.Write([0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
+
+                        //Write docking position 2
+                        w.Write(dock_2.x);
+                        w.Write(dock_2.y);
+
+                        w.Write([0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00]);
+
+                        //Write buoy connection ID
+                        if (connection_ids[b] == -1)
+                            w.Write([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+                        else
+                        {
+                            w.Write(connection_ids[b]);
+                            w.Write(0);
+                        }
+
+                        w.Write([0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
+
+                        //Write buoy position
+                        w.Write(buoy.x);
+                        w.Write(buoy.y);
+
+                        stored_buoys.Add((i, b));
                     }
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 1 world stream_offset
-                    var (x, y) = GetBuoyWorldCoordinates(harbour, 0);
-                    w.Write(x);
-                    w.Write(y);
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0x7F, 0x63, 0xCD, 0xE0, 0x13, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 2 docking stream_offset 1
-                    dOffset = buoy2_docking_positions[harbour_rotation, 0];
-                    w.Write(harbour.pos_x + dOffset.offsetX);
-                    w.Write(harbour.pos_y + dOffset.offsetY);
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0x20, 0x87, 0x07, 0xFF, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 2 docking stream_offset 2
-                    dOffset = buoy2_docking_positions[harbour_rotation, 1];
-                    w.Write(harbour.pos_x + dOffset.offsetX);
-                    w.Write(harbour.pos_y + dOffset.offsetY);
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00]);
-
-                    //Write buoy 2 connection ID
-                    if (harbour.buoy_2_connection <= 0)
-                        w.Write([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
-                    else
-                    {
-                        w.Write(Harbour_data[i].buoy_2_connection_id);
-                        w.Write(0);
-                    }
-
-                    w.Write([0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-
-                    // Write buoy 2 world stream_offset
-                    var buoy2Coords = GetBuoyWorldCoordinates(harbour, 1);
-                    w.Write(buoy2Coords.x);
-                    w.Write(buoy2Coords.y);
 
                     w.Write([0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
                 }
@@ -3928,7 +3916,7 @@ namespace DnG_AdK_Mapedit
                                                 adk_memory_stream.WriteByte(flag_byte);
 
                                                 //Read ID
-                                                adk_memory_stream.Position = blocking_doodad_start + 20;
+                                                adk_memory_stream.Position = blocking_doodad_start + 28;
                                                 adk_memory_stream.Read(temp_buffer, 0, 8);
 
                                                 //Remove the blocking doodad (Insert nothing)
@@ -4435,7 +4423,109 @@ namespace DnG_AdK_Mapedit
                 ReplaceStreamBytes(adk_memory_stream, lifetime_doodads_beginning, 4, BitConverter.GetBytes(lifetime_doodads_amount), 0, 4);
             }
 
-            return adk_memory_stream.ToArray();
+            //The game loads the grid states and continents as stored, so they have to match everything written above
+            byte[] final_map = adk_memory_stream.ToArray();
+            gridstates = S2mRules.ReadUInts(final_map, gridstates_beginning, map_area);
+
+            int[] continent_ids = S2mRules.ComputeContinents(gridstates, S2mRules.ReadUInts(final_map, textures_beginning, map_area), map_size_x, map_size_y, out var continents);
+
+            List<string> harbour_errors = ValidateHarbours(gridstates, continent_ids, continents, stored_buoys, route_paths);
+            if (harbour_errors.Count > 0)
+            {
+                MessageBox.Show(string.Join(Environment.NewLine, harbour_errors.Take(15)), "Invalid harbour placement", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return null;
+            }
+
+            foreach (var harbour in Harbours_list)
+            {
+                gridstates[harbour.pos_y * map_size_x + harbour.pos_x] |= S2mRules.Harbour;
+            }
+            foreach (var (harbour, buoy) in stored_buoys)
+            {
+                var (buoy_cell, dock_1, dock_2) = GetBuoyCells(Harbours_list[harbour], buoy);
+                gridstates[buoy_cell.y * map_size_x + buoy_cell.x] |= S2mRules.HarbourExit;
+                gridstates[dock_1.y * map_size_x + dock_1.x] |= S2mRules.Dock;
+                gridstates[dock_2.y * map_size_x + dock_2.x] |= S2mRules.Dock;
+            }
+            foreach (int[][] path in route_paths)
+            {
+                foreach (int[] step in path)
+                    gridstates[step[1] * map_size_x + step[0]] |= S2mRules.ShipRoute;
+            }
+            S2mRules.WriteUInts(gridstates, final_map, gridstates_beginning);
+
+            Buffer.BlockCopy(BitConverter.GetBytes(next_unique_id), 0, final_map, unique_id_counter_offset, 8);
+
+            byte[] continents_section = S2mRules.SerializeContinents(continent_ids, continents, map_size_x, map_size_y);
+            return [.. final_map[..continents_beginning], .. continents_section, .. final_map[(continents_beginning + continents_length)..]];
+        }
+
+        //Buoy (harbour exit) and its two docking positions
+        private static ((int x, int y) buoy, (int x, int y) dock_1, (int x, int y) dock_2) GetBuoyCells(
+            (int pos_x, int pos_y, int rotation, bool anchorage, int anchor_x, int anchor_y, int buoy_1_connection, int buoy_2_connection) harbour,
+            int buoySubIndex)
+        {
+            var docks = buoySubIndex == 0 ? buoy1_docking_positions : buoy2_docking_positions;
+            var d1 = docks[harbour.rotation, 0];
+            var d2 = docks[harbour.rotation, 1];
+            return (GetBuoyWorldCoordinates(harbour, buoySubIndex),
+                (harbour.pos_x + d1.offsetX, harbour.pos_y + d1.offsetY),
+                (harbour.pos_x + d2.offsetX, harbour.pos_y + d2.offsetY));
+        }
+
+        private bool IsFreeWater(uint[] gridstates, int x, int y) =>
+            x >= 0 && x < map_size_x && y >= 0 && y < map_size_y &&
+            (gridstates[y * map_size_x + x] & (S2mRules.Water | S2mRules.LogicObject)) == S2mRules.Water;
+
+        //Placement rules the game checks when harbours are built in its own editor
+        private List<string> ValidateHarbours(uint[] gridstates, int[] continent_ids, List<S2mRules.Continent> continents, List<(int harbour, int buoy)> stored_buoys, List<int[][]> route_paths)
+        {
+            List<string> errors = [];
+            const uint harbour_blockers = S2mRules.Blocked | S2mRules.Water | 0x20 | S2mRules.Cliff | S2mRules.Deposit | 0x100 | S2mRules.LogicObject;
+
+            for (int i = 0; i < Harbours_list.Count; i++)
+            {
+                var (pos_x, pos_y, _, _, _, _, _, _) = Harbours_list[i];
+                int cell = pos_y * map_size_x + pos_x;
+
+                if ((gridstates[cell] & harbour_blockers) != 0)
+                    errors.Add($"Harbour #{i + 1} is not on free land.");
+                else if (continent_ids[cell] < 0 || continents[continent_ids[cell]].IsWater)
+                    errors.Add($"Harbour #{i + 1} is not on walkable land.");
+
+                for (int j = i + 1; j < Harbours_list.Count; j++)
+                {
+                    if (S2mRules.HexDistance(pos_x, pos_y, Harbours_list[j].pos_x, Harbours_list[j].pos_y) <= 1)
+                        errors.Add($"Harbours #{i + 1} and #{j + 1} are next to each other.");
+                }
+            }
+
+            foreach (var (harbour, buoy) in stored_buoys)
+            {
+                var (buoy_cell, dock_1, dock_2) = GetBuoyCells(Harbours_list[harbour], buoy);
+                if (!IsFreeWater(gridstates, buoy_cell.x, buoy_cell.y) || !IsFreeWater(gridstates, dock_1.x, dock_1.y) || !IsFreeWater(gridstates, dock_2.x, dock_2.y))
+                {
+                    errors.Add($"Harbour #{harbour + 1} buoy {buoy + 1} or one of its docking positions is not in open water.");
+                    continue;
+                }
+
+                int water_body = continent_ids[buoy_cell.y * map_size_x + buoy_cell.x];
+                if (continent_ids[dock_1.y * map_size_x + dock_1.x] != water_body || continent_ids[dock_2.y * map_size_x + dock_2.x] != water_body)
+                    errors.Add($"Harbour #{harbour + 1} buoy {buoy + 1} and its docking positions are in different water bodies.");
+            }
+
+            foreach (int[][] path in route_paths)
+            {
+                int[] start = path[0], end = path[^1];
+                if (S2mRules.HexDistance(start[0], start[1], end[0], end[1]) <= 2)
+                    errors.Add($"The buoys at ({start[0]}, {start[1]}) and ({end[0]}, {end[1]}) are too close to be connected.");
+
+                int water_body = continent_ids[start[1] * map_size_x + start[0]];
+                if (path.Any(step => !IsFreeWater(gridstates, step[0], step[1]) || continent_ids[step[1] * map_size_x + step[0]] != water_body))
+                    errors.Add($"The connection from ({start[0]}, {start[1]}) to ({end[0]}, {end[1]}) crosses something other than open water.");
+            }
+
+            return errors;
         }
 
         // MemoryStream Byte Replacement Helper Method
@@ -4465,24 +4555,10 @@ namespace DnG_AdK_Mapedit
             }
         }
 
-        readonly Random rand = new();
+        //The map's ID counter must stay above every stored ID: the game takes IDs for new objects from it
+        long next_unique_id;
 
-        // List of all used IDs
-        readonly HashSet<int> used_IDs = [];
-
-        private int GenerateUniqueID()
-        {
-            int id;
-            do
-            {
-                //Ensure generated ID is larger than the ones generated by the game
-                id = rand.Next(1000000, int.MaxValue);
-            }
-            while (used_IDs.Contains(id));
-
-            used_IDs.Add(id);
-            return id;
-        }
+        private int GenerateUniqueID() => checked((int)next_unique_id++);
 
         // Offset lookup table: [rotationIndex, buoyIndex] -> (dx, dy)
         // Rotation mapping: 0=SW, 1=NW, 2=SE, 3=NE, 4=N, 5=S, 6=E, 7=W
@@ -4929,130 +5005,6 @@ namespace DnG_AdK_Mapedit
         [0x78, 0xC8, 0xA5, 0xFC], // 10: !!!MED Misc Spawn (Deer, Boar, Elk, Rabbit, Goat, Ox)
         [0x79, 0xC8, 0xA5, 0xFC]  // 11: !!!MED Camel Spawn
     ];
-
-        // Array storing the texture type corresponding to each terrain index (0 to 72)
-        private static readonly int[] DnG_texture_types =
-        [
-        2, // [0]  !!!MED (RES) rocky earth 2
-        2, // [1]  !!!MED (RES) rocky earth big 2
-        2, // [2]  !!!MED (RES) rocky earth dark 2
-        2, // [3]  !!!MED (RES) rocky plants 2
-        1, // [4]  !!!MED ground 00 1
-        1, // [5]  !!!MED ground 01 1
-        1, // [6]  !!!MED meadow 00 1
-        1, // [7]  !!!MED meadow 01 1
-        1, // [8]  !!!MED meadow 02 1
-        1, // [9]  !!!MED meadow 03 1
-        2, // [10] !!!MED rock 2
-        2, // [11] !!!MED rock big 2
-        2, // [12] !!!MED rock red 2
-        2, // [13] !!!MED rock red big 2
-        2, // [14] !!!MED rock red small 2
-        2, // [15] !!!MED rock small 2
-        3, // [16] !!!MED seaground rock 3
-        3, // [17] !!!MED seaground rock red 3
-        1, // [18] !!!MED stone ground 1
-        4, // [19] ((00 LAVA 01 4
-        4, // [20] ((00 LAVA 01 soft 4
-        4, // [21] ((00 LAVA 02 4
-        1, // [22] ((00 LAVA Meadow 00 1
-        3, // [23] ((00 LAVA Sand 00 3
-        1, // [24] ((00 LAVA ground 1
-        1, // [25] ((00 LAVA ground flat 1
-        1, // [26] ((00 LAVA ground rough 1
-        2, // [27] ((00 LAVA rock 2
-        2, // [28] ((00 LAVA rock big 2
-        2, // [29] ((00 LAVA rock floating lava 2
-        2, // [30] ((00 LAVA rock small 2
-        2, // [31] (RES) rocky earth 2
-        2, // [32] (RES) rocky earth big 2
-        2, // [33] (RES) rocky earth dark 2
-        2, // [34] (RES) rocky plants 2
-        1, // [35] DO NOT USE 1
-        1, // [36] HARBOR 1
-        4, // [37] border 4
-        1, // [38] earth 1
-        1, // [39] leaf 1
-        1, // [40] meadow 1
-        1, // [41] meadow bright 1
-        1, // [42] meadow dark small 1
-        1, // [43] meadow ground 1
-        1, // [44] meadow leaf 1
-        1, // [45] meadow red flowers 1
-        1, // [46] meadow yellow flowers 1
-        2, // [47] rock 2
-        2, // [48] rock big 2
-        2, // [49] rock small 2
-        2, // [50] rock stretched source_x 2
-        2, // [51] rock stretched source_y 2
-        3, // [52] sand 3
-        1, // [53] sand stones 1
-        3, // [54] seaground 3
-        3, // [55] seaground plants 3
-        3, // [56] seaground plants rock 3
-        3, // [57] seaground rock 3
-        3, // [58] seaground rocky 3
-        3, // [59] seaground sand 3
-        4, // [60] snow 4
-        1, // [61] stone ground 1
-        4, // [62] swamp land 4
-        1, // [63] swamp meadow (unblocked) 1
-        4, // [64] swamp water 4
-        4, // [65] water 4
-        1, // [66] §§Desert earth 1
-        1, // [67] §§Desert meadow 1
-        3, // [68] §§Desert sand dune 3
-        3, // [69] §§Desert sand ripple 3
-        3, // [70] §§Desert sand small dune 3
-        3, // [71] §§Desert sand small ripple 3
-        3  // [72] §§Desert sand yellow 3
-        ];
-
-        // Array storing the texture type corresponding to each terrain index (0 to 40)
-        private static readonly int[] AdK_texture_types =
-        [
-        1, // [0]  __Highland meadow bright 1
-        1, // [1]  __Highland meadow bright rocks 1
-        1, // [2]  __Highland meadow medium 1
-        1, // [3]  __Highland meadow medium rocks 1
-        1, // [4]  __Highland meadow dark 1
-        1, // [5]  __Highland meadow dark rocks 1
-        1, // [6]  __Highland earth fir moss 1
-        1, // [7]  __Highland earth fir 1
-        1, // [8]  __Highland earth 1
-        2, // [9]  __Highland rock 2
-        2, // [10] __Highland rock big 2
-        2, // [11] __Highland (RES) rocky earth 2
-        2, // [12] __Highland rock flat 2
-        2, // [13] __Highland rock dark big 2
-        2, // [14] __Highland rock dark flat 2
-        2, // [15] __Highland rock braid flat 2
-        1, // [16] __Highland stone ground 1
-        2, // [17] --Snow highland rock much 2
-        2, // [18] --Snow highland rock 2
-        2, // [19] --Snow highland rock part 2
-        2, // [20] --Snow (RES) rocky earth 2
-        1, // [21] --Snow meadow 1
-        1, // [22] --Snow meadow snow 1
-        1, // [23] --Snow meadow snow 2 1
-        1, // [24] --Snow meadow snow 3 1
-        1, // [25] --Snow meadow Treeground 80x80,200x200 1
-        1, // [26] --Snow meadow Treeground 125x125 1
-        1, // [27] --Snow meadow Treeground 170x170 1
-        1, // [28] --Snow meadow Treeground 255x255 1
-        4, // [29] __Highland swamp land 4
-        4, // [30] __Highland swamp water 4
-        1, // [31] __Highland swamp meadow (unblocked) 1
-        3, // [32] __Highland seaground rocks 3
-        3, // [33] __Highland seaground rocks dark flat 3
-        3, // [34] __Highland seaground pebbles 3
-        4, // [35] --Snow Ice Crackles 4
-        4, // [36] --Snow Ice Crackles Dark 4
-        4, // [37] --Snow Ice Clean 4
-        4, // [38] --Snow Ice Clean Dark 4
-        4, // [39] --Snow medium border 4
-        4  // [40] --Snow soft border 4
-        ];
 
         private static readonly byte[][] DnG_textures =
 [
