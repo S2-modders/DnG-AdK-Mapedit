@@ -2963,6 +2963,9 @@ namespace DnG_AdK_Mapedit
             }
             current_dng_byte += 128;
 
+            //Skip victory condition
+            current_adk_byte += 4;
+
             //Overwrite water shader type
             if (Environment_highland_water_checkbox.Checked)
             {
@@ -2988,7 +2991,7 @@ namespace DnG_AdK_Mapedit
 
             //Skip to the UUID
             current_dng_byte += 24;
-            current_adk_byte += 24;
+            current_adk_byte += 20;
             //Each exported map needs its own UUID, the lobby identifies maps by it
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 16, Guid.NewGuid().ToByteArray());
             current_adk_byte += 16;
@@ -3196,6 +3199,18 @@ namespace DnG_AdK_Mapedit
             //Derive blocked, mining, building and ship ground flags from the final textures
             uint[] gridstates = S2mRules.ReadUInts(adk_byte_array, gridstates_beginning, map_area);
             List<int> resources_to_clear = S2mRules.RecomputePatternBits(gridstates, S2mRules.ReadUInts(adk_byte_array, textures_beginning, map_area));
+
+            for (int i = 0; i < Harbours_list.Count; i++)
+            {
+                if (Harbours_list[i].anchorage)
+                {
+                    int anchorIndex = Harbours_list[i].anchor_y * map_size_x + Harbours_list[i].anchor_x;
+
+                    gridstates[anchorIndex] &= ~S2mRules.Buildable;   // Remove standard building spot flag
+                    gridstates[anchorIndex] |= S2mRules.ShipGround;   // Apply ship ground anchorage flag
+                }
+            }
+
             S2mRules.WriteUInts(gridstates, adk_byte_array, gridstates_beginning);
 
             //Ships can't pass spawns and blocking doodads in the water
@@ -3389,21 +3404,52 @@ namespace DnG_AdK_Mapedit
             //End of the DnG map, no need to update current_dng_byte anymore
             current_adk_byte += ambientsDataLength;
 
-            //Skip buoy connections header
+            // Skip buoy connections header
             current_adk_byte += 36;
-            //Generate buoy connections and harbour IDs
+
+            // Generate buoy connections and harbour IDs
             GenerateBuoyConnections();
-            //Write buoy connections amount (template map has none)
+
+            // Write buoy connections amount
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 4, BitConverter.GetBytes(Buoy_connections.Count));
             current_adk_byte += 4;
 
-            //Write buoy connections
+            // Declare route_paths here so it exists in the outer context
             List<int[][]> route_paths = [];
-            if (Harbours_list.Count > 0)
+
+            if (Harbours_list.Count > 0 && Buoy_connections.Count > 0)
             {
-                foreach (var (connection_id, harbour_source_id, harbour_target_id, buoy_source_number, buoy_target_number, buoy_source_x, buoy_source_y, buoy_target_x, buoy_target_y) in Buoy_connections)
+                // 1. Prepare batch pathfinding requests
+                var pathRequests = Buoy_connections
+                    .Select(c => (
+                        Source: new HexCoord(r: c.buoy_source_y, c: c.buoy_source_x),
+                        Target: new HexCoord(r: c.buoy_target_y, c: c.buoy_target_x)
+                    ))
+                    .ToList();
+
+                // 2. Compute non-colliding paths
+                List<List<(HexCoord Coord, int Heading)>> computedPaths =
+                    HexPathfinder.SolveMultiPathfinding(pathRequests, heightmap_logical);
+
+                // 3. Write binary data for each connection and store step arrays in route_paths
+                for (int i = 0; i < Buoy_connections.Count; i++)
                 {
-                    MemoryStream buoyStream = new();
+                    var (connection_id, harbour_source_id, harbour_target_id, buoy_source_number, buoy_target_number, buoy_source_x, buoy_source_y, buoy_target_x, buoy_target_y) = Buoy_connections[i];
+                    var hexPath = computedPaths[i];
+
+                    if (hexPath == null || hexPath.Count == 0)
+                    {
+                        MessageBox.Show(
+                            $"Path connecting buoy {((buoy_source_number - 1) % 2) + 1} from harbour {(buoy_source_number - 1) / 2} and buoy {((buoy_target_number - 1) % 2) + 1} from harbour {(buoy_target_number - 1) / 2} is blocked.",
+                            "Path can't be established",
+                            MessageBoxButtons.OK,
+                            MessageBoxIcon.Error
+                        );
+                        return null;
+                    }
+
+                    // Write connection metadata stream
+                    using (MemoryStream buoyStream = new())
                     using (BinaryWriter w = new(buoyStream))
                     {
                         //Write the first static value and the ID header
@@ -3423,48 +3469,34 @@ namespace DnG_AdK_Mapedit
                         w.Write(0);
                         //Write the empty ship references list and the street ID (none)
                         w.Write([0x00, 0x00, 0x00, 0x00, 0x79, 0x3C, 0xF8, 0x25, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDD, 0x2D, 0xFD, 0xC5, 0x0E, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]);
+
+                        byte[] bBytes = buoyStream.ToArray();
+                        ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, bBytes);
+                        current_adk_byte += bBytes.Length;
                     }
 
-                    byte[] bBytes = buoyStream.ToArray();
-                    ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, bBytes);
-                    current_adk_byte += bBytes.Length;
+                    // Convert HexCoord path to int[][] (X = Column, Y = Row)
+                    int[][] stepArray = [.. hexPath.Select(s => new int[] { s.Coord.C, s.Coord.R })];
+                    route_paths.Add(stepArray);
 
-                    //Compute the path connecting the buoys
-                    int[][] buoyPath = FindPath(heightmap_logical, [buoy_source_x, buoy_source_y], [buoy_target_x, buoy_target_y], established_connections);
+                    // Write route step count
+                    ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, BitConverter.GetBytes(stepArray.Length));
+                    current_adk_byte += 4;
 
-                    if (buoyPath != null)
+                    // Write each path step coordinate block
+                    foreach (var (Coord, Heading) in hexPath)
                     {
-                        route_paths.Add(buoyPath);
-                        ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, BitConverter.GetBytes(buoyPath.Length));
-                        current_adk_byte += 4;
-
-                        foreach (int[] step in buoyPath)
+                        using MemoryStream stepMs = new();
+                        using (BinaryWriter w = new(stepMs))
                         {
-                            MemoryStream stepMs = new();
-                            using (BinaryWriter w = new(stepMs))
-                            {
-                                //PatternCursor
-                                w.Write([0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
-                                //X
-                                w.Write(step[0]);
-                                //Y
-                                w.Write(step[1]);
-                            }
-                            byte[] sBytes = stepMs.ToArray();
-                            ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, sBytes);
-                            current_adk_byte += sBytes.Length;
-                            established_connections.Add(step);
+                            w.Write([0x00, 0x00, 0x00, 0x00, 0xA2, 0xFE, 0x49, 0x54, 0x0D, 0x00, 0x00, 0x00]);
+                            w.Write(Coord.C);
+                            w.Write(Coord.R);
                         }
-                    }
-                    else
-                    {
-                        MessageBox.Show(
-                            $"Path connecting buoy {((buoy_source_number - 1) % 2) + 1} from harbour {(buoy_source_number - 1) / 2} to buoy {((buoy_target_number - 1) % 2) + 1} from harbour {(buoy_target_number - 1) / 2} is blocked.",
-                            "Path can't be established",
-                            MessageBoxButtons.OK,
-                            MessageBoxIcon.Error
-                        );
-                        return null;
+
+                        byte[] sBytes = stepMs.ToArray();
+                        ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 0, sBytes);
+                        current_adk_byte += sBytes.Length;
                     }
                 }
             }
@@ -4587,7 +4619,6 @@ namespace DnG_AdK_Mapedit
         {
             Buoy_connections.Clear();
             Harbour_data.Clear();
-            established_connections.Clear();
 
             var processedPairs = new HashSet<(int, int)>();
 
@@ -4690,206 +4721,7 @@ namespace DnG_AdK_Mapedit
             // Map connection ID to both source and target buoy slots
             harbourBuoyConnectionIds[sourceHarborIdx, sourceBuoySubIdx] = connectionId;
             harbourBuoyConnectionIds[targetHarborIdx, targetBuoySubIdx] = connectionId;
-
-            established_connections.Add([source_x, source_y]);
-            established_connections.Add([target_x, target_y]);
         }
-
-        readonly List<int[]> established_connections = [];
-
-#nullable enable
-
-        // Direction offsets for Odd-R grid layout (0: E, 1: SE, 2: SW, 3: W, 4: NW, 5: NE)
-        private static readonly (int Row, int Col)[][] Offsets =
-        [
-            // Even Rows
-            [(0, 1), (1, 0), (1, -1), (0, -1), (-1, -1), (-1, 0)],
-        // Odd Rows
-        [(0, 1), (1, 1), (1, 0), (0, -1), (-1, 0), (-1, 1)]
-        ];
-
-        public readonly record struct State(int Row, int Col, int Direction);
-
-        private sealed class Node(State state, int gCost, int hCost, Node? parent = null)
-        {
-            public State State { get; } = state;
-            public int GCost { get; } = gCost;
-            public int HCost { get; } = hCost;
-            public int FCost => GCost + HCost;
-            public Node? Parent { get; } = parent;
-        }
-
-        /// <summary>
-        /// Finds the optimal path from start to goal as an array of [col, row] coordinates.
-        /// </summary>
-        /// <param name="heightMap">2D array [row, col] of heights as signed integers.</param>
-        /// <param name="start">Start coordinate array [col, row].</param>
-        /// <param name="goal">Goal coordinate array [col, row].</param>
-        /// <param name="establishedPaths">List/collection of previously computed paths to treat as impassable.</param>
-        /// <returns>Array of [col, row] coordinates from start to goal, or null if no valid path exists.</returns>
-        public static int[][]? FindPath(
-            int[,] heightMap,
-            int[] start,
-            int[] goal,
-            IEnumerable<int[]>? establishedPaths = null)
-        {
-            int maxRows = heightMap.GetLength(0);
-            int maxCols = heightMap.GetLength(1);
-
-            int startCol = start[0], startRow = start[1];
-            int goalCol = goal[0], goalRow = goal[1];
-
-            // Store already used coordinates (excluding start and goal hexes)
-            var blockedCoordinates = new HashSet<(int Row, int Col)>();
-            if (establishedPaths != null)
-            {
-                foreach (var coord in establishedPaths)
-                {
-                    if (coord is { Length: >= 2 })
-                    {
-                        int c = coord[0], r = coord[1];
-                        // Start and finish hexes are allowed to overlap established paths
-                        if ((r == startRow && c == startCol) || (r == goalRow && c == goalCol))
-                            continue;
-
-                        blockedCoordinates.Add((r, c));
-                    }
-                }
-            }
-
-            // Validate start/goal map bounds and land terrain restrictions (land >= -100)
-            if (!IsValid(startRow, startCol, maxRows, maxCols) ||
-                !IsValid(goalRow, goalCol, maxRows, maxCols) ||
-                heightMap[startRow, startCol] >= -100 ||
-                heightMap[goalRow, goalCol] >= -100)
-            {
-                return null;
-            }
-
-            var openSet = new PriorityQueue<Node, int>();
-            var gCosts = new Dictionary<State, int>();
-
-            State startState = new(startRow, startCol, -1);
-            Node startNode = new(startState, 0, GetHeuristic(startRow, startCol, goalRow, goalCol));
-
-            openSet.Enqueue(startNode, startNode.FCost);
-            gCosts[startState] = 0;
-
-            Node? bestGoalNode = null;
-
-            while (openSet.Count > 0)
-            {
-                Node current = openSet.Dequeue();
-
-                // Skip state if a shorter path to it was already processed
-                if (gCosts.TryGetValue(current.State, out int existingCost) && current.GCost > existingCost)
-                    continue;
-
-                if (current.State.Row == goalRow && current.State.Col == goalCol)
-                {
-                    bestGoalNode = current;
-                    break;
-                }
-
-                int curRow = current.State.Row;
-                int curCol = current.State.Col;
-                int parity = Math.Abs(curRow % 2);
-
-                for (int dir = 0; dir < 6; dir++)
-                {
-                    var (dRow, dCol) = Offsets[parity][dir];
-                    int nextRow = curRow + dRow;
-                    int nextCol = curCol + dCol;
-
-                    // Check bounds, land impassability (>= -100), and used hex collisions
-                    if (!IsValid(nextRow, nextCol, maxRows, maxCols) ||
-                        heightMap[nextRow, nextCol] >= -100 ||
-                        blockedCoordinates.Contains((nextRow, nextCol)))
-                    {
-                        continue;
-                    }
-
-                    // 1. Base Cost
-                    int stepCost = 1;
-
-                    // 2. Penalty: Turning (+1)
-                    if (current.State.Direction != -1 && current.State.Direction != dir)
-                    {
-                        stepCost += 1;
-                    }
-
-                    // 3. Penalty: Shallow water (>= -4000) OR near land (adjacent to >= -100) (+2)
-                    if (heightMap[nextRow, nextCol] >= -4000 || IsNearLand(heightMap, nextRow, nextCol, maxRows, maxCols))
-                    {
-                        stepCost += 2;
-                    }
-
-                    // 4. Penalty: Edge of map (+2)
-                    if (nextRow == 0 || nextRow == maxRows - 1 || nextCol == 0 || nextCol == maxCols - 1)
-                    {
-                        stepCost += 2;
-                    }
-
-                    int newGCost = current.GCost + stepCost;
-                    State nextState = new(nextRow, nextCol, dir);
-
-                    if (!gCosts.TryGetValue(nextState, out int existingG) || newGCost < existingG)
-                    {
-                        gCosts[nextState] = newGCost;
-                        int hCost = GetHeuristic(nextRow, nextCol, goalRow, goalCol);
-                        Node neighborNode = new(nextState, newGCost, hCost, current);
-                        openSet.Enqueue(neighborNode, neighborNode.FCost);
-                    }
-                }
-            }
-
-            if (bestGoalNode == null) return null;
-
-            // Reconstruct path to array of [col, row]
-            List<int[]> pathList = [];
-            Node? curr = bestGoalNode;
-            while (curr != null)
-            {
-                pathList.Add([curr.State.Col, curr.State.Row]);
-                curr = curr.Parent;
-            }
-
-            pathList.Reverse();
-            return [.. pathList];
-        }
-
-        private static bool IsNearLand(int[,] map, int r, int c, int maxR, int maxC)
-        {
-            int parity = Math.Abs(r % 2);
-            for (int i = 0; i < 6; i++)
-            {
-                var (dRow, dCol) = Offsets[parity][i];
-                int nr = r + dRow;
-                int nc = c + dCol;
-                if (IsValid(nr, nc, maxR, maxC) && map[nr, nc] >= -100)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private static bool IsValid(int r, int c, int maxR, int maxC)
-        {
-            return (uint)r < (uint)maxR && (uint)c < (uint)maxC;
-        }
-
-        private static int GetHeuristic(int r1, int c1, int r2, int c2)
-        {
-            int q1 = c1 - (r1 - (r1 & 1)) / 2;
-            int s1 = -q1 - r1;
-
-            int q2 = c2 - (r2 - (r2 & 1)) / 2;
-            int s2 = -q2 - r2;
-
-            return (Math.Abs(q1 - q2) + Math.Abs(r1 - r2) + Math.Abs(s1 - s2)) / 2;
-        }
-
 
         private static readonly byte[][] HarbourRotations =
 [

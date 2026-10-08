@@ -34,7 +34,7 @@ namespace DnG_AdK_Mapedit
             0x7AC44C12, 0x7AC44D00, 0x7AC44D01, 0x7AC44D02, 0x7AC44E0B, 0x7AC44E0C, 0x7AC44E0D, 0x7AC44E0E,
             0x7AC44E0F, 0x7AC44E10, 0x7AC44E11, 0x7AC44E12, 0xBADEB00E, 0xBFE4E8E3, 0xCA56701A, 0xCAFECB05,
             0xDE5E1110, 0xDECADE02, 0xDECADE07, 0xDECADE09, 0xF67ADB70, 0xFA1CA560, 0xFA1CA561, 0xFA1CA562,
-            0xFA1CA563, 0xFA1CA570, 0xFA1CA571, 0xFA1CA58A
+            0xFA1CA563, 0xFA1CA570, 0xFA1CA571, 0xFA1CA58A, 0xDECADE01
         ];
 
         private static readonly HashSet<uint> MiningPatterns =
@@ -48,7 +48,7 @@ namespace DnG_AdK_Mapedit
 
         private static readonly HashSet<uint> ShipPatterns =
         [
-            0xDECADE01
+            //Don't put "0xDECADE01" here as a ship building can only be below anhors
         ];
 
         private static readonly HashSet<uint> NoFlagPatterns =
