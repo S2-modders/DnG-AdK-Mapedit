@@ -2964,6 +2964,7 @@ namespace DnG_AdK_Mapedit
             current_dng_byte += 128;
 
             //Skip victory condition
+            current_dng_byte += 4;
             current_adk_byte += 4;
 
             //Overwrite water shader type
@@ -2990,7 +2991,7 @@ namespace DnG_AdK_Mapedit
             current_adk_byte += 4;
 
             //Skip to the UUID
-            current_dng_byte += 24;
+            current_dng_byte += 20;
             current_adk_byte += 20;
             //Each exported map needs its own UUID, the lobby identifies maps by it
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 16, Guid.NewGuid().ToByteArray());
