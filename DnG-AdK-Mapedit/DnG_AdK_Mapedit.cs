@@ -3012,7 +3012,10 @@ namespace DnG_AdK_Mapedit
             ReplaceStreamBytes(adk_memory_stream, current_adk_byte, 124, [0, 0, 0, 0]);
             current_adk_byte += 4;
 
-            //Skip scripted map start resources and static 4 bytes before it
+            //Overwrite Egyptians starting wood so they can build a single ship at the start of the game
+            ReplaceStreamBytes(adk_memory_stream, current_adk_byte + 216, 4, BitConverter.GetBytes(12));
+
+            //Skip starting resources and static 4 bytes before it
             current_adk_byte += 564;
 
             // Sacrifices Section
