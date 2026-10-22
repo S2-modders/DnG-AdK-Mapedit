@@ -161,7 +161,6 @@
             Small_doodads_from_list = new System.Windows.Forms.ListBox();
             Small_doodads_from_text = new System.Windows.Forms.Label();
             Swap_list_tab = new System.Windows.Forms.TabPage();
-            Environment_highland_water_checkbox = new System.Windows.Forms.CheckBox();
             Swap_move_up_button = new System.Windows.Forms.Button();
             Swap_move_down_button = new System.Windows.Forms.Button();
             Swap_remove_button = new System.Windows.Forms.Button();
@@ -204,6 +203,7 @@
             Caves_list_view = new System.Windows.Forms.ListBox();
             Caves_add_button = new System.Windows.Forms.Button();
             Environment_tab = new System.Windows.Forms.TabPage();
+            Environment_highland_water_checkbox = new System.Windows.Forms.CheckBox();
             Environment_preset_checkbox = new System.Windows.Forms.CheckBox();
             Environment_panel = new System.Windows.Forms.Panel();
             Global_sun_placement_image = new System.Windows.Forms.PictureBox();
@@ -1128,7 +1128,6 @@
             // 
             // Swap_list_tab
             // 
-            Swap_list_tab.Controls.Add(Environment_highland_water_checkbox);
             Swap_list_tab.Controls.Add(Swap_move_up_button);
             Swap_list_tab.Controls.Add(Swap_move_down_button);
             Swap_list_tab.Controls.Add(Swap_remove_button);
@@ -1138,19 +1137,6 @@
             Swap_list_tab.Size = new System.Drawing.Size(1212, 473);
             Swap_list_tab.TabIndex = 12;
             Swap_list_tab.Text = "Swap list";
-            // 
-            // Environment_highland_water_checkbox
-            // 
-            Environment_highland_water_checkbox.AutoSize = true;
-            Environment_highland_water_checkbox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
-            Environment_highland_water_checkbox.Location = new System.Drawing.Point(809, 431);
-            Environment_highland_water_checkbox.MinimumSize = new System.Drawing.Size(400, 0);
-            Environment_highland_water_checkbox.Name = "Environment_highland_water_checkbox";
-            Environment_highland_water_checkbox.Size = new System.Drawing.Size(400, 29);
-            Environment_highland_water_checkbox.TabIndex = 5;
-            Environment_highland_water_checkbox.Text = "Use Highlands water shader";
-            Environment_highland_water_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
-            Environment_highland_water_checkbox.UseVisualStyleBackColor = true;
             // 
             // Swap_move_up_button
             // 
@@ -1600,6 +1586,7 @@
             // 
             // Environment_tab
             // 
+            Environment_tab.Controls.Add(Environment_highland_water_checkbox);
             Environment_tab.Controls.Add(Environment_preset_checkbox);
             Environment_tab.Controls.Add(Environment_panel);
             Environment_tab.Controls.Add(Environment_preset_global);
@@ -1613,10 +1600,23 @@
             Environment_tab.TabIndex = 14;
             Environment_tab.Text = "Environment";
             // 
+            // Environment_highland_water_checkbox
+            // 
+            Environment_highland_water_checkbox.AutoSize = true;
+            Environment_highland_water_checkbox.CheckAlign = System.Drawing.ContentAlignment.MiddleRight;
+            Environment_highland_water_checkbox.Location = new System.Drawing.Point(806, 52);
+            Environment_highland_water_checkbox.MinimumSize = new System.Drawing.Size(400, 0);
+            Environment_highland_water_checkbox.Name = "Environment_highland_water_checkbox";
+            Environment_highland_water_checkbox.Size = new System.Drawing.Size(400, 29);
+            Environment_highland_water_checkbox.TabIndex = 5;
+            Environment_highland_water_checkbox.Text = "Use Highlands water shader";
+            Environment_highland_water_checkbox.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            Environment_highland_water_checkbox.UseVisualStyleBackColor = true;
+            // 
             // Environment_preset_checkbox
             // 
             Environment_preset_checkbox.AutoSize = true;
-            Environment_preset_checkbox.Location = new System.Drawing.Point(11, 10);
+            Environment_preset_checkbox.Location = new System.Drawing.Point(3, 10);
             Environment_preset_checkbox.MinimumSize = new System.Drawing.Size(200, 0);
             Environment_preset_checkbox.Name = "Environment_preset_checkbox";
             Environment_preset_checkbox.Size = new System.Drawing.Size(200, 29);
@@ -1653,9 +1653,9 @@
             Environment_panel.Controls.Add(Global_sun_placement_text);
             Environment_panel.Controls.Add(Global_sky_text);
             Environment_panel.Controls.Add(Environment_zone_panel);
-            Environment_panel.Location = new System.Drawing.Point(3, 80);
+            Environment_panel.Location = new System.Drawing.Point(3, 87);
             Environment_panel.Name = "Environment_panel";
-            Environment_panel.Size = new System.Drawing.Size(1203, 389);
+            Environment_panel.Size = new System.Drawing.Size(1203, 382);
             Environment_panel.TabIndex = 4;
             // 
             // Global_sun_placement_image
@@ -1694,7 +1694,7 @@
             Environment_next_zone.AutoSize = true;
             Environment_next_zone.Font = new System.Drawing.Font("Segoe Fluent Icons", 9F);
             Environment_next_zone.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            Environment_next_zone.Location = new System.Drawing.Point(347, 207);
+            Environment_next_zone.Location = new System.Drawing.Point(347, 204);
             Environment_next_zone.MaximumSize = new System.Drawing.Size(40, 40);
             Environment_next_zone.MinimumSize = new System.Drawing.Size(40, 40);
             Environment_next_zone.Name = "Environment_next_zone";
@@ -1709,7 +1709,7 @@
             Environment_previous_zone.AutoSize = true;
             Environment_previous_zone.Font = new System.Drawing.Font("Segoe Fluent Icons", 9F);
             Environment_previous_zone.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            Environment_previous_zone.Location = new System.Drawing.Point(301, 207);
+            Environment_previous_zone.Location = new System.Drawing.Point(301, 204);
             Environment_previous_zone.MaximumSize = new System.Drawing.Size(40, 40);
             Environment_previous_zone.MinimumSize = new System.Drawing.Size(40, 40);
             Environment_previous_zone.Name = "Environment_previous_zone";
@@ -1724,7 +1724,7 @@
             Environment_remove_zone.AutoSize = true;
             Environment_remove_zone.Font = new System.Drawing.Font("Segoe Fluent Icons", 9F);
             Environment_remove_zone.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            Environment_remove_zone.Location = new System.Drawing.Point(209, 207);
+            Environment_remove_zone.Location = new System.Drawing.Point(209, 204);
             Environment_remove_zone.MaximumSize = new System.Drawing.Size(40, 40);
             Environment_remove_zone.MinimumSize = new System.Drawing.Size(40, 40);
             Environment_remove_zone.Name = "Environment_remove_zone";
@@ -1739,7 +1739,7 @@
             Environment_add_zone.AutoSize = true;
             Environment_add_zone.Font = new System.Drawing.Font("Segoe Fluent Icons", 9F);
             Environment_add_zone.ImeMode = System.Windows.Forms.ImeMode.NoControl;
-            Environment_add_zone.Location = new System.Drawing.Point(255, 207);
+            Environment_add_zone.Location = new System.Drawing.Point(255, 204);
             Environment_add_zone.MaximumSize = new System.Drawing.Size(40, 40);
             Environment_add_zone.MinimumSize = new System.Drawing.Size(40, 40);
             Environment_add_zone.Name = "Environment_add_zone";
@@ -1753,7 +1753,7 @@
             // 
             Environment_local_zones_text.AutoSize = true;
             Environment_local_zones_text.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 238);
-            Environment_local_zones_text.Location = new System.Drawing.Point(3, 215);
+            Environment_local_zones_text.Location = new System.Drawing.Point(3, 214);
             Environment_local_zones_text.MinimumSize = new System.Drawing.Size(200, 0);
             Environment_local_zones_text.Name = "Environment_local_zones_text";
             Environment_local_zones_text.Size = new System.Drawing.Size(200, 24);
@@ -1948,7 +1948,7 @@
             Environment_zone_panel.Controls.Add(Local_ambient_text);
             Environment_zone_panel.Controls.Add(Local_fog_colour);
             Environment_zone_panel.Controls.Add(Local_fog_text);
-            Environment_zone_panel.Location = new System.Drawing.Point(3, 253);
+            Environment_zone_panel.Location = new System.Drawing.Point(2, 246);
             Environment_zone_panel.Name = "Environment_zone_panel";
             Environment_zone_panel.Size = new System.Drawing.Size(1195, 131);
             Environment_zone_panel.TabIndex = 0;
@@ -2209,7 +2209,7 @@
             // 
             Environment_global_text.AutoSize = true;
             Environment_global_text.Font = new System.Drawing.Font("Segoe UI Variable Display", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, 238);
-            Environment_global_text.Location = new System.Drawing.Point(11, 49);
+            Environment_global_text.Location = new System.Drawing.Point(3, 54);
             Environment_global_text.MinimumSize = new System.Drawing.Size(100, 0);
             Environment_global_text.Name = "Environment_global_text";
             Environment_global_text.Size = new System.Drawing.Size(100, 24);
@@ -3276,7 +3276,7 @@
             MaximizeBox = false;
             Name = "DnG_AdK_Mapedit";
             StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            Text = "DnG-AdK-Mapedit 1.0.3";
+            Text = "DnG-AdK-Mapedit 1.0.4";
             FormClosing += DnG_AdK_Mapedit_FormClosing;
             Load += DnG_AdK_mapedit_Load;
             Tab_control.ResumeLayout(false);

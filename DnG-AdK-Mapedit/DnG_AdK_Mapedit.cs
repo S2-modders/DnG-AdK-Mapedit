@@ -3194,7 +3194,7 @@ namespace DnG_AdK_Mapedit
 
                     if ((adk_byte_array[anchorGridstateOffset] & 0x08) == 0)
                     {
-                        MessageBox.Show($"Harbour at index {i} has an anchor in an invalid location.", "Anchor is in invalid location", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show($"Harbour at index {i + 1} has an anchor in an invalid location.", "Anchor is in invalid location", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                         return null;
                     }
                 }
